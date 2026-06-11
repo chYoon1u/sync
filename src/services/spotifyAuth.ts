@@ -1,6 +1,8 @@
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID as string
 const REDIRECT_URI = (import.meta.env.VITE_SPOTIFY_REDIRECT_URI as string | undefined)
   ?? window.location.origin
+const PKCE_VERIFIER_KEY = 'spotify_pkce_verifier'
+const AUTH_STATE_KEY = 'spotify_auth_state'
 
 const SCOPES = [
   'streaming',
@@ -34,9 +36,36 @@ function randomString(length: number): string {
 
 /** Spotify 로그인 페이지로 리디렉션 */
 export async function initiateLogin(): Promise<void> {
+  if (!CLIENT_ID?.trim()) {
+    throw new Error('VITE_SPOTIFY_CLIENT_ID is missing.')
+  }
+
+  if (!REDIRECT_URI?.trim()) {
+    throw new Error('VITE_SPOTIFY_REDIRECT_URI is missing.')
+  }
+
+  let redirectUrl: URL
+  try {
+    redirectUrl = new URL(REDIRECT_URI)
+  } catch {
+    throw new Error('VITE_SPOTIFY_REDIRECT_URI must be a valid URL.')
+  }
+
+  if (redirectUrl.hostname === 'localhost') {
+    throw new Error('Spotify redirect URI must use 127.0.0.1 instead of localhost.')
+  }
+
+  const isLoopback =
+    redirectUrl.hostname === '127.0.0.1' || redirectUrl.hostname === '[::1]'
+  if (redirectUrl.protocol !== 'https:' && !(redirectUrl.protocol === 'http:' && isLoopback)) {
+    throw new Error('Spotify redirect URI must use HTTPS or an explicit loopback IP.')
+  }
+
   const verifier = randomString(64)
+  const state = randomString(32)
   const challenge = base64urlencode(await sha256(verifier))
-  sessionStorage.setItem('pkce_verifier', verifier)
+  sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier)
+  sessionStorage.setItem(AUTH_STATE_KEY, state)
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -45,6 +74,7 @@ export async function initiateLogin(): Promise<void> {
     code_challenge_method: 'S256',
     code_challenge: challenge,
     scope: SCOPES,
+    state,
   })
 
   window.location.href = `https://accounts.spotify.com/authorize?${params}`
@@ -58,8 +88,14 @@ export interface TokenResult {
 
 /** 인가 코드 → 토큰 교환 */
 export async function exchangeCodeForToken(code: string): Promise<TokenResult> {
-  const verifier = sessionStorage.getItem('pkce_verifier')
-  if (!verifier) throw new Error('PKCE verifier not found in sessionStorage')
+  if (!CLIENT_ID?.trim()) {
+    throw new Error('VITE_SPOTIFY_CLIENT_ID is missing.')
+  }
+
+  const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY)
+  if (!verifier) {
+    throw new Error('로그인 세션이 만료되었습니다. Spotify 로그인을 다시 시도해 주세요.')
+  }
 
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
@@ -79,7 +115,7 @@ export async function exchangeCodeForToken(code: string): Promise<TokenResult> {
   }
 
   const data = await res.json()
-  sessionStorage.removeItem('pkce_verifier')
+  sessionStorage.removeItem(PKCE_VERIFIER_KEY)
 
   return {
     accessToken: data.access_token,
@@ -92,6 +128,10 @@ export async function exchangeCodeForToken(code: string): Promise<TokenResult> {
 export async function refreshAccessToken(
   refreshToken: string
 ): Promise<Pick<TokenResult, 'accessToken' | 'expiresAt'>> {
+  if (!CLIENT_ID?.trim()) {
+    throw new Error('VITE_SPOTIFY_CLIENT_ID is missing.')
+  }
+
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -112,20 +152,25 @@ export async function refreshAccessToken(
 }
 
 /** URL에서 인가 코드를 추출하고 URL을 정리 */
-export function extractAuthCode(): string | null {
+export interface AuthCallback {
+  code: string | null
+  error: string | null
+}
+
+export function extractAuthCallback(): AuthCallback {
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
-  const error = params.get('error')
+  let error = params.get('error')
+  const returnedState = params.get('state')
 
-  if (error) {
-    console.error('Spotify auth error:', error)
+  if (code || error) {
+    const expectedState = sessionStorage.getItem(AUTH_STATE_KEY)
+    sessionStorage.removeItem(AUTH_STATE_KEY)
+    if (!expectedState || returnedState !== expectedState) {
+      error = 'Spotify 로그인 요청을 확인할 수 없습니다. 다시 로그인해 주세요.'
+    }
     window.history.replaceState({}, '', window.location.pathname)
-    return null
   }
 
-  if (code) {
-    window.history.replaceState({}, '', window.location.pathname)
-  }
-
-  return code
+  return { code: error ? null : code, error }
 }

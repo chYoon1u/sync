@@ -6,7 +6,9 @@ import type { CalendarEvent } from '@/types/calendar'
 interface CalendarStore {
   events: CalendarEvent[]
   selectedDate: string
+  isCollapsed: boolean
   setSelectedDate: (date: string) => void
+  setCollapsed: (collapsed: boolean) => void
   addEvent: (event: Omit<CalendarEvent, 'id'>) => void
   deleteEvent: (id: string) => void
   updateEvent: (id: string, updates: Partial<Omit<CalendarEvent, 'id'>>) => void
@@ -17,9 +19,14 @@ export const useCalendarStore = create<CalendarStore>()(
     immer((set) => ({
       events: [],
       selectedDate: new Date().toISOString().split('T')[0],
+      isCollapsed: false,
       setSelectedDate: (date) =>
         set((state) => {
           state.selectedDate = date
+        }),
+      setCollapsed: (collapsed) =>
+        set((state) => {
+          state.isCollapsed = collapsed
         }),
       addEvent: (event) =>
         set((state) => {

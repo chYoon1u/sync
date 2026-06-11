@@ -12,6 +12,8 @@ interface PlayerStore {
   volume: number
   isRepeat: boolean
   isShuffle: boolean
+  hasPlaybackHistory: boolean
+  lastPlayedSpotifyId: string | null
 
   // ── 런타임 전용 ───────────────────────────────
   playerState: PlayerState
@@ -31,7 +33,7 @@ interface PlayerStore {
   setProgress: (ms: number, duration: number) => void
 
   /** 플레이리스트의 특정 인덱스 트랙 재생 */
-  playAt: (index: number) => Promise<void>
+  playAt: (index: number, positionMs?: number) => Promise<void>
   togglePlay: () => Promise<void>
   playNext: () => Promise<void>
   playPrev: () => Promise<void>
@@ -49,6 +51,8 @@ export const usePlayerStore = create<PlayerStore>()(
       volume: 70,
       isRepeat: false,
       isShuffle: false,
+      hasPlaybackHistory: false,
+      lastPlayedSpotifyId: null,
 
       playerState: 'stopped',
       deviceId: null,
@@ -68,12 +72,26 @@ export const usePlayerStore = create<PlayerStore>()(
           const idx = s.playlist.findIndex((t) => t.id === id)
           s.playlist = s.playlist.filter((t) => t.id !== id)
           if (idx <= s.currentIndex && s.currentIndex > 0) s.currentIndex -= 1
+          if (s.playlist.length === 0) {
+            s.currentIndex = 0
+            s.progressMs = 0
+            s.durationMs = 0
+            s.hasPlaybackHistory = false
+            s.lastPlayedSpotifyId = null
+            s.playerState = 'stopped'
+          } else if (idx === s.currentIndex) {
+            s.lastPlayedSpotifyId = s.playlist[s.currentIndex]?.spotifyId ?? null
+          }
         }),
 
       clearPlaylist: () =>
         set((s) => {
           s.playlist = []
           s.currentIndex = 0
+          s.progressMs = 0
+          s.durationMs = 0
+          s.hasPlaybackHistory = false
+          s.lastPlayedSpotifyId = null
           s.playerState = 'stopped'
         }),
 
@@ -86,18 +104,22 @@ export const usePlayerStore = create<PlayerStore>()(
           s.durationMs = duration
         }),
 
-      playAt: async (index) => {
+      playAt: async (index, positionMs = 0) => {
         const { playlist, deviceId, _sdkPlayer } = get()
         if (!playlist.length || !deviceId || !_sdkPlayer) return
 
         const safeIndex = Math.max(0, Math.min(index, playlist.length - 1))
-        set((s) => { s.currentIndex = safeIndex })
+        set((s) => {
+          s.currentIndex = safeIndex
+          s.hasPlaybackHistory = true
+          s.lastPlayedSpotifyId = playlist[safeIndex]?.spotifyId ?? null
+        })
 
         const token = await useAuthStore.getState().getValidToken()
         if (!token) return
 
         const uris = playlist.map((t) => t.uri)
-        await playTracks(deviceId, uris, token, safeIndex)
+        await playTracks(deviceId, uris, token, safeIndex, positionMs)
       },
 
       togglePlay: async () => {
@@ -164,6 +186,10 @@ export const usePlayerStore = create<PlayerStore>()(
         volume: s.volume,
         isRepeat: s.isRepeat,
         isShuffle: s.isShuffle,
+        hasPlaybackHistory: s.hasPlaybackHistory,
+        lastPlayedSpotifyId: s.lastPlayedSpotifyId,
+        progressMs: s.progressMs,
+        durationMs: s.durationMs,
       }),
     }
   )
