@@ -38,7 +38,7 @@ export function TodoInput() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 rounded-2xl border border-zinc-100 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <form onSubmit={handleSubmit} className="space-y-2 rounded-2xl border border-zinc-100 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
       <div className="flex min-w-0 gap-2">
         <input
           type="text"
@@ -60,21 +60,26 @@ export function TodoInput() {
         </button>
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-        {PRIORITIES.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            onClick={() => setPriority(item.value)}
-            className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
-              priority === item.value
-                ? PRIORITY_SELECTED[item.value]
-                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-600'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
+          {PRIORITIES.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => setPriority(item.value)}
+              className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
+                priority === item.value
+                  ? PRIORITY_SELECTED[item.value]
+                  : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-600'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex min-w-0 items-center gap-1.5">
         <input
           type="date"
           value={dueDate}
@@ -86,7 +91,7 @@ export function TodoInput() {
           value={dueTime}
           onChange={(event) => setDueTime(event.target.value)}
           aria-label="완료 시간"
-          className="accent-focus w-24 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+          className="accent-focus w-28 shrink-0 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
         />
       </div>
     </form>

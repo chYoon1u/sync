@@ -8,7 +8,7 @@ import type { SpotifyPlaybackState } from '@/types/spotify'
 let sdkLoaded = false
 let sdkLoadPromise: Promise<void> | null = null
 
-function loadSDKScript(): Promise<void> {
+export function loadSpotifySDKScript(): Promise<void> {
   if (sdkLoaded || window.Spotify) {
     sdkLoaded = true
     return Promise.resolve()
@@ -45,14 +45,14 @@ function loadSDKScript(): Promise<void> {
  * Spotify Web Playback SDK를 초기화하고 전역 Zustand 스토어와 동기화.
  * App 루트에서 단 한 번 마운트해야 한다.
  */
-export function useSpotifyPlayer() {
+export function useSpotifyPlayer(enabled = true) {
   const playerRef = useRef<SpotifySDKPlayer | null>(null)
   const { getValidToken, accessToken } = useAuthStore()
   const { setDeviceId, setSDKPlayer, setPlayerState, setProgress } = usePlayerStore()
   const isAuthenticated = Boolean(accessToken)
 
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated || !enabled) return
 
     let cancelled = false
     let progressTimer: number | null = null
@@ -62,7 +62,7 @@ export function useSpotifyPlayer() {
         const token = await getValidToken()
         if (!token || cancelled) return
 
-        await loadSDKScript()
+        await loadSpotifySDKScript()
         if (cancelled) return
 
         const player = new window.Spotify.Player({
@@ -108,14 +108,18 @@ export function useSpotifyPlayer() {
               progressMs,
               hasPlaybackHistory,
               lastPlayedSpotifyId,
+              pendingPlayIndex,
               playAt,
             } = usePlayerStore.getState()
-            const resumeIndex = lastPlayedSpotifyId
+            const resumeIndex = pendingPlayIndex ?? (lastPlayedSpotifyId
               ? playlist.findIndex((track) => track.spotifyId === lastPlayedSpotifyId)
-              : currentIndex
+              : currentIndex)
 
-            if (hasPlaybackHistory && playlist[resumeIndex]) {
-              await playAt(resumeIndex, progressMs).catch(console.error)
+            if (playlist[resumeIndex]) {
+              await playAt(
+                resumeIndex,
+                pendingPlayIndex === null && hasPlaybackHistory ? progressMs : 0
+              ).catch(console.error)
             }
           }
         })
@@ -182,7 +186,7 @@ export function useSpotifyPlayer() {
       }
     }
     // Token refreshes must not disconnect and recreate the active player.
-  }, [isAuthenticated]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [enabled, isAuthenticated]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return playerRef
 }

@@ -24,9 +24,13 @@ async function apiFetch<T>(
 }
 
 /** 트랙 검색 */
-export async function searchTracks(query: string, token: string): Promise<SpotifyTrack[]> {
+export async function searchTracks(
+  query: string,
+  token: string,
+  signal?: AbortSignal
+): Promise<SpotifyTrack[]> {
   const params = new URLSearchParams({ q: query, type: 'track', limit: '10', market: 'KR' })
-  const data = await apiFetch<SpotifySearchResponse>(`/search?${params}`, token)
+  const data = await apiFetch<SpotifySearchResponse>(`/search?${params}`, token, { signal })
   return data.tracks.items
 }
 

@@ -30,7 +30,7 @@ export function CalendarGrid({ year, month, selectedDate, onSelectDate }: Props)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="grid shrink-0 grid-cols-7">
+      <div className="grid shrink-0 grid-cols-7 gap-1">
         {WEEKDAYS.map((day, index) => (
           <div
             key={day}

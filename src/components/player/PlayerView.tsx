@@ -127,14 +127,14 @@ export function PlayerView() {
               aria-haspopup="dialog"
               className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
             >
-              플레이리스트 {playlist.length > 0 ? `(${playlist.length})` : ''}
+              재생 목록 {playlist.length > 0 ? `(${playlist.length})` : ''}
             </button>
 
             {isPlaylistOpen && (
               <div
                 role="dialog"
-                aria-label="플레이리스트 목록"
-                className="absolute bottom-full right-0 z-30 mb-3 h-72 w-80 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-2xl dark:border-zinc-700 dark:bg-zinc-800"
+                aria-label="재생 목록 및 저장 플레이리스트"
+                className="fixed right-2 top-12 z-50 h-96 max-h-[calc(100vh-4rem)] w-[min(24rem,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-2xl dark:border-zinc-700 dark:bg-zinc-800"
               >
                 <PlaylistPanel />
               </div>
@@ -170,7 +170,7 @@ export function PlayerView() {
             <div className="mb-5 flex items-start justify-between">
               <div>
                 <h3 id="add-track-title" className="text-lg font-semibold text-zinc-900 dark:text-white">
-                  플레이리스트에 곡 추가
+                  현재 재생 목록에 곡 추가
                 </h3>
                 <p className="mt-1 text-xs text-zinc-400">Spotify에서 원하는 곡을 검색하세요.</p>
               </div>

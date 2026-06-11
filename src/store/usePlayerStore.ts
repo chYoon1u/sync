@@ -1,13 +1,20 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
-import type { PlaylistTrack, PlayerState, SpotifySDKPlayer } from '@/types/player'
+import type {
+  PlaylistTrack,
+  PlayerState,
+  SavedPlaylist,
+  SpotifySDKPlayer,
+} from '@/types/player'
 import { playTracks, setRepeatMode, setShuffleMode } from '@/services/spotify'
 import { useAuthStore } from './useAuthStore'
+import { useUIStore } from './useUIStore'
 
 interface PlayerStore {
   // ── 퍼시스트 대상 ─────────────────────────────
   playlist: PlaylistTrack[]
+  savedPlaylists: SavedPlaylist[]
   currentIndex: number
   volume: number
   isRepeat: boolean
@@ -21,11 +28,23 @@ interface PlayerStore {
   progressMs: number
   durationMs: number
   _sdkPlayer: SpotifySDKPlayer | null
+  pendingPlayIndex: number | null
 
   // ── 액션 ─────────────────────────────────────
   addTrack: (track: Omit<PlaylistTrack, 'id' | 'addedAt'>) => void
   removeTrack: (id: string) => void
   clearPlaylist: () => void
+  reorderQueue: (fromIndex: number, toIndex: number) => void
+  createSavedPlaylist: (name: string) => boolean
+  renameSavedPlaylist: (id: string, name: string) => void
+  deleteSavedPlaylist: (id: string) => void
+  loadSavedPlaylist: (id: string) => void
+  reorderSavedPlaylist: (fromIndex: number, toIndex: number) => void
+  reorderSavedPlaylistTrack: (
+    playlistId: string,
+    fromIndex: number,
+    toIndex: number
+  ) => void
 
   setDeviceId: (id: string) => void
   setSDKPlayer: (player: SpotifySDKPlayer | null) => void
@@ -47,6 +66,7 @@ export const usePlayerStore = create<PlayerStore>()(
   persist(
     immer((set, get) => ({
       playlist: [],
+      savedPlaylists: [],
       currentIndex: 0,
       volume: 70,
       isRepeat: false,
@@ -59,6 +79,7 @@ export const usePlayerStore = create<PlayerStore>()(
       progressMs: 0,
       durationMs: 0,
       _sdkPlayer: null,
+      pendingPlayIndex: null,
 
       addTrack: (track) =>
         set((s) => {
@@ -95,6 +116,107 @@ export const usePlayerStore = create<PlayerStore>()(
           s.playerState = 'stopped'
         }),
 
+      reorderQueue: (fromIndex, toIndex) =>
+        set((s) => {
+          if (
+            fromIndex === toIndex ||
+            fromIndex < 0 ||
+            toIndex < 0 ||
+            fromIndex >= s.playlist.length ||
+            toIndex >= s.playlist.length
+          ) return
+
+          const [track] = s.playlist.splice(fromIndex, 1)
+          s.playlist.splice(toIndex, 0, track)
+
+          if (s.currentIndex === fromIndex) {
+            s.currentIndex = toIndex
+          } else if (fromIndex < s.currentIndex && toIndex >= s.currentIndex) {
+            s.currentIndex -= 1
+          } else if (fromIndex > s.currentIndex && toIndex <= s.currentIndex) {
+            s.currentIndex += 1
+          }
+        }),
+
+      createSavedPlaylist: (name) => {
+        const trimmedName = name.trim()
+        if (!trimmedName || get().playlist.length === 0) return false
+
+        set((s) => {
+          const now = new Date().toISOString()
+          s.savedPlaylists.push({
+            id: crypto.randomUUID(),
+            name: trimmedName,
+            tracks: s.playlist.map((track) => ({ ...track })),
+            createdAt: now,
+            updatedAt: now,
+          })
+        })
+        return true
+      },
+
+      renameSavedPlaylist: (id, name) =>
+        set((s) => {
+          const trimmedName = name.trim()
+          const savedPlaylist = s.savedPlaylists.find((item) => item.id === id)
+          if (!savedPlaylist || !trimmedName) return
+          savedPlaylist.name = trimmedName
+          savedPlaylist.updatedAt = new Date().toISOString()
+        }),
+
+      deleteSavedPlaylist: (id) =>
+        set((s) => {
+          s.savedPlaylists = s.savedPlaylists.filter((item) => item.id !== id)
+        }),
+
+      loadSavedPlaylist: (id) =>
+        set((s) => {
+          const savedPlaylist = s.savedPlaylists.find((item) => item.id === id)
+          if (!savedPlaylist) return
+
+          s.playlist = savedPlaylist.tracks.map((track) => ({
+            ...track,
+            id: crypto.randomUUID(),
+            addedAt: new Date().toISOString(),
+          }))
+          s.currentIndex = 0
+          s.progressMs = 0
+          s.durationMs = s.playlist[0]?.durationMs ?? 0
+          s.hasPlaybackHistory = false
+          s.lastPlayedSpotifyId = null
+          s.pendingPlayIndex = null
+          s.playerState = 'stopped'
+        }),
+
+      reorderSavedPlaylist: (fromIndex, toIndex) =>
+        set((s) => {
+          if (
+            fromIndex === toIndex ||
+            fromIndex < 0 ||
+            toIndex < 0 ||
+            fromIndex >= s.savedPlaylists.length ||
+            toIndex >= s.savedPlaylists.length
+          ) return
+          const [savedPlaylist] = s.savedPlaylists.splice(fromIndex, 1)
+          s.savedPlaylists.splice(toIndex, 0, savedPlaylist)
+        }),
+
+      reorderSavedPlaylistTrack: (playlistId, fromIndex, toIndex) =>
+        set((s) => {
+          const savedPlaylist = s.savedPlaylists.find((item) => item.id === playlistId)
+          if (
+            !savedPlaylist ||
+            fromIndex === toIndex ||
+            fromIndex < 0 ||
+            toIndex < 0 ||
+            fromIndex >= savedPlaylist.tracks.length ||
+            toIndex >= savedPlaylist.tracks.length
+          ) return
+          const [track] = savedPlaylist.tracks.splice(fromIndex, 1)
+          savedPlaylist.tracks.splice(toIndex, 0, track)
+          savedPlaylist.updatedAt = new Date().toISOString()
+        }),
+
       setDeviceId: (id) => set((s) => { s.deviceId = id }),
       setSDKPlayer: (player) => set((s) => { s._sdkPlayer = player }),
       setPlayerState: (state) => set((s) => { s.playerState = state }),
@@ -106,14 +228,20 @@ export const usePlayerStore = create<PlayerStore>()(
 
       playAt: async (index, positionMs = 0) => {
         const { playlist, deviceId, _sdkPlayer } = get()
-        if (!playlist.length || !deviceId || !_sdkPlayer) return
+        if (!playlist.length) return
 
         const safeIndex = Math.max(0, Math.min(index, playlist.length - 1))
         set((s) => {
           s.currentIndex = safeIndex
           s.hasPlaybackHistory = true
           s.lastPlayedSpotifyId = playlist[safeIndex]?.spotifyId ?? null
+          s.pendingPlayIndex = deviceId && _sdkPlayer ? null : safeIndex
         })
+
+        if (!deviceId || !_sdkPlayer) {
+          useUIStore.getState().requestSpotifySDK()
+          return
+        }
 
         const token = await useAuthStore.getState().getValidToken()
         if (!token) return
@@ -130,7 +258,14 @@ export const usePlayerStore = create<PlayerStore>()(
 
       playNext: async () => {
         const { playlist, currentIndex, isShuffle, _sdkPlayer } = get()
-        if (!playlist.length || !_sdkPlayer) return
+        if (playlist.length <= 1) {
+          if (_sdkPlayer) {
+            await _sdkPlayer.seek(0)
+          } else if (playlist.length === 1) {
+            await get().playAt(0)
+          }
+          return
+        }
 
         const next = isShuffle
           ? Math.floor(Math.random() * playlist.length)
@@ -140,12 +275,13 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       playPrev: async () => {
-        const { playlist, currentIndex, progressMs, _sdkPlayer } = get()
-        if (!playlist.length || !_sdkPlayer) return
-
-        // 3초 이상 재생 중이면 처음으로, 아니면 이전 트랙
-        if (progressMs > 3000) {
-          await _sdkPlayer.seek(0)
+        const { playlist, currentIndex, _sdkPlayer } = get()
+        if (playlist.length <= 1) {
+          if (_sdkPlayer) {
+            await _sdkPlayer.seek(0)
+          } else if (playlist.length === 1) {
+            await get().playAt(0)
+          }
           return
         }
 
@@ -182,6 +318,7 @@ export const usePlayerStore = create<PlayerStore>()(
       name: 'player-store',
       partialize: (s) => ({
         playlist: s.playlist,
+        savedPlaylists: s.savedPlaylists,
         currentIndex: s.currentIndex,
         volume: s.volume,
         isRepeat: s.isRepeat,
