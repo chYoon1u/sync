@@ -13,12 +13,12 @@ test.describe('캘린더 E2E', () => {
   })
 
   test.fixme('날짜 클릭 → 이벤트 추가 모달 오픈', async ({ page }) => {
-    await page.getByTestId('calendar-day-15').click()
+    await page.getByTestId('calendar-day-2026-06-15').click()
     await expect(page.getByRole('dialog')).toBeVisible()
   })
 
   test.fixme('이벤트 추가 → 캘린더에 표시', async ({ page }) => {
-    await page.getByTestId('calendar-day-15').click()
+    await page.getByTestId('calendar-day-2026-06-15').click()
     await page.getByPlaceholder('이벤트 제목').fill('팀 미팅')
     await page.getByRole('button', { name: '저장' }).click()
     await expect(page.getByText('팀 미팅')).toBeVisible()
