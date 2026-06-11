@@ -23,4 +23,21 @@ describe('searchTracks', () => {
       })
     )
   })
+
+  it('이전 검색을 취소할 수 있도록 AbortSignal을 전달한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ tracks: { items: [] } }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+
+    await searchTracks('test query', 'token', controller.signal)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal })
+    )
+  })
 })

@@ -82,10 +82,12 @@ ipcMain.handle('window:set-todo-compact', (_event, enabled) => {
 
   if (enabled) {
     if (!normalBounds) normalBounds = mainWindow.getBounds()
-    mainWindow.setMinimumSize(360, 480)
-    mainWindow.setSize(390, 560, true)
+    mainWindow.setMinimumSize(390, 462)
+    mainWindow.setContentSize(390, 462, true)
+    mainWindow.setResizable(false)
   } else {
     mainWindow.setAlwaysOnTop(false)
+    mainWindow.setResizable(true)
     mainWindow.setMinimumSize(900, 720)
     if (normalBounds) {
       mainWindow.setBounds(normalBounds, true)

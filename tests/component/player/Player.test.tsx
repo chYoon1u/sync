@@ -79,7 +79,9 @@ describe('PlayerView', () => {
 
     await user.click(screen.getByRole('button', { name: /플레이리스트/i }))
 
-    expect(screen.getByRole('dialog', { name: '플레이리스트 목록' })).toBeInTheDocument()
-    expect(screen.getByText('플레이리스트가 비어 있습니다')).toBeInTheDocument()
+    expect(
+      screen.getByRole('dialog', { name: '재생 목록 및 저장 플레이리스트' })
+    ).toBeInTheDocument()
+    expect(screen.getByText('현재 재생 목록이 비어 있습니다')).toBeInTheDocument()
   })
 })

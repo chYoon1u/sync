@@ -45,7 +45,7 @@ export function TodoView() {
 
   if (isCompact) {
     return (
-      <section className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white text-left shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
+      <section className="flex h-full min-w-0 flex-col overflow-hidden border border-zinc-200 bg-white text-left dark:border-zinc-700 dark:bg-zinc-800">
         <header className="flex min-w-0 items-center gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-bold text-zinc-800 dark:text-zinc-100">오늘의 메모</h2>

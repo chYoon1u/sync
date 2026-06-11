@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useDebounce } from '@/hooks/useDebounce'
 import { searchTracks } from '@/services/spotify'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePlayerStore } from '@/store/usePlayerStore'
@@ -14,6 +15,8 @@ interface SearchPanelProps {
   onTrackAdded?: () => void
 }
 
+const SEARCH_DEBOUNCE_MS = 300
+
 export function SearchPanel({ onTrackAdded }: SearchPanelProps) {
   const { getValidToken } = useAuthStore()
   const { addTrack, playAt, playlist } = usePlayerStore()
@@ -22,29 +25,58 @@ export function SearchPanel({ onTrackAdded }: SearchPanelProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const lastRequestedQueryRef = useRef('')
+  const debouncedQuery = useDebounce(query, SEARCH_DEBOUNCE_MS)
 
-  const handleSearch = async (event: React.FormEvent) => {
-    event.preventDefault()
-    const searchQuery = query.trim()
-    if (!searchQuery) return
-
+  const runSearch = useCallback(async (searchQuery: string) => {
+    lastRequestedQueryRef.current = searchQuery
     abortRef.current?.abort()
-    abortRef.current = new AbortController()
+    const controller = new AbortController()
+    abortRef.current = controller
     setIsLoading(true)
     setError(null)
+
+    const metricLabel = `[Spotify Search][${SEARCH_DEBOUNCE_MS}ms]`
+    const startedAt = performance.now()
+    console.count(`${metricLabel} API calls`)
 
     try {
       const token = await getValidToken()
       if (!token) throw new Error('로그인이 필요합니다.')
-      setResults(await searchTracks(searchQuery, token))
+      const tracks = await searchTracks(searchQuery, token, controller.signal)
+
+      if (!controller.signal.aborted) {
+        setResults(tracks)
+        console.info(
+          `${metricLabel} "${searchQuery}" response: ${(performance.now() - startedAt).toFixed(1)}ms`
+        )
+      }
     } catch (searchError) {
       if (searchError instanceof Error && searchError.name !== 'AbortError') {
         setError(searchError.message)
       }
     } finally {
-      setIsLoading(false)
+      if (abortRef.current === controller) {
+        setIsLoading(false)
+      }
     }
-  }
+  }, [getValidToken])
+
+  useEffect(() => {
+    const searchQuery = debouncedQuery.trim()
+
+    if (!searchQuery) {
+      abortRef.current?.abort()
+      lastRequestedQueryRef.current = ''
+      return
+    }
+
+    if (searchQuery !== lastRequestedQueryRef.current) {
+      void runSearch(searchQuery)
+    }
+
+    return () => abortRef.current?.abort()
+  }, [debouncedQuery, runSearch])
 
   const handleAdd = (track: SpotifyTrack) => {
     addTrack(spotifyTrackToPlaylistTrack(track))
@@ -65,32 +97,34 @@ export function SearchPanel({ onTrackAdded }: SearchPanelProps) {
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <div className="flex gap-2">
         <input
           type="text"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            const nextQuery = event.target.value
+            setQuery(nextQuery)
+
+            if (!nextQuery.trim()) {
+              abortRef.current?.abort()
+              lastRequestedQueryRef.current = ''
+              setResults([])
+              setIsLoading(false)
+              setError(null)
+            }
+          }}
           placeholder="노래 제목 또는 아티스트 검색"
           className="accent-focus flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-800 placeholder-zinc-400 transition focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
         />
-        <button
-          type="submit"
-          disabled={isLoading || !query.trim()}
-          className="accent-bg accent-bg-hover rounded-xl px-4 py-2.5 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label="검색"
-        >
-          {isLoading ? (
+        {isLoading && (
+          <div className="flex items-center px-2 text-zinc-400" aria-label="검색 중">
             <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
             </svg>
-          ) : (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          )}
-        </button>
-      </form>
+          </div>
+        )}
+      </div>
 
       {error && <p className="text-xs text-red-500 dark:text-red-400">{error}</p>}
 
@@ -129,8 +163,8 @@ export function SearchPanel({ onTrackAdded }: SearchPanelProps) {
                 onClick={() => handleAdd(track)}
                 disabled={isInPlaylist(track.id)}
                 className="rounded-lg bg-zinc-100 p-1.5 text-zinc-600 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
-                aria-label="플레이리스트에 추가"
-                title={isInPlaylist(track.id) ? '이미 추가됨' : '플레이리스트에 추가'}
+                aria-label="현재 재생 목록에 추가"
+                title={isInPlaylist(track.id) ? '이미 추가됨' : '현재 재생 목록에 추가'}
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

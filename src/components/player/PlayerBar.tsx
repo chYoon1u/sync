@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePlayerStore } from '@/store/usePlayerStore'
+import { useUIStore } from '@/store/useUIStore'
 
 function msToTime(ms: number): string {
   const s = Math.floor(ms / 1000)
@@ -7,6 +8,7 @@ function msToTime(ms: number): string {
 }
 
 export function PlayerBar() {
+  const requestSpotifySDK = useUIStore((state) => state.requestSpotifySDK)
   const {
     playlist,
     currentIndex,
@@ -23,11 +25,20 @@ export function PlayerBar() {
     toggleRepeat,
     toggleShuffle,
     seekTo,
+    _sdkPlayer,
   } = usePlayerStore()
   const { accessToken } = useAuthStore()
 
   const currentTrack = playlist[currentIndex] ?? null
   const progress = durationMs > 0 ? (progressMs / durationMs) * 100 : 0
+  const handleTogglePlay = () => {
+    if (_sdkPlayer) {
+      void togglePlay()
+      return
+    }
+
+    requestSpotifySDK()
+  }
 
   if (!accessToken) return null
 
@@ -35,6 +46,8 @@ export function PlayerBar() {
     <div
       className="w-full shrink-0 border-t border-zinc-100 bg-white dark:border-zinc-800 dark:bg-zinc-900"
       data-testid="player-bar"
+      onPointerEnter={requestSpotifySDK}
+      onFocusCapture={requestSpotifySDK}
     >
       <div className="playerbar-inner grid h-24 w-full grid-cols-[minmax(0,240px)_minmax(0,1fr)_minmax(0,160px)] items-center gap-4 px-4">
         <div className="playerbar-track flex min-w-0 items-center gap-3">
@@ -66,7 +79,7 @@ export function PlayerBar() {
           )}
         </div>
 
-        <div className="flex min-w-0 flex-col items-center gap-2">
+        <div className="playerbar-controls flex min-w-0 flex-col items-center gap-2">
           <div className="flex items-center gap-4">
             <button
               onClick={toggleShuffle}
@@ -94,7 +107,7 @@ export function PlayerBar() {
             </button>
 
             <button
-              onClick={togglePlay}
+              onClick={handleTogglePlay}
               disabled={!currentTrack}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white shadow-md transition-transform hover:scale-105 disabled:opacity-30 dark:bg-white dark:text-zinc-900"
               aria-label={playerState === 'playing' ? '일시정지' : '재생'}

@@ -42,7 +42,8 @@ function SpotifyCallbackHandler() {
 }
 
 function PlayerSDKMount() {
-  useSpotifyPlayer()
+  const isSpotifySDKRequested = useUIStore((state) => state.isSpotifySDKRequested)
+  useSpotifyPlayer(isSpotifySDKRequested)
   return null
 }
 
@@ -53,7 +54,14 @@ function AppHeader() {
   const musicRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
   const { accessToken, isInitializing, setAuthError } = useAuthStore()
-  const { isDarkMode, accentColor, setAccentColor, toggleDarkMode } = useUIStore()
+  const {
+    isDarkMode,
+    accentColor,
+    customAccent,
+    setAccentColor,
+    setCustomAccent,
+    toggleDarkMode,
+  } = useUIStore()
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -85,7 +93,7 @@ function AppHeader() {
         <div ref={settingsRef} className="relative">
           <button
             onClick={() => setSettingsOpen((open) => !open)}
-            className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+            className="rounded-full border border-zinc-200 bg-white px-3 py-0.4 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
           >
             설정
           </button>
@@ -110,6 +118,16 @@ function AppHeader() {
                   />
                 ))}
               </div>
+              <label className="mt-4 flex items-center justify-between gap-3 text-xs font-semibold text-zinc-700 dark:text-zinc-200">
+                직접 선택
+                <input
+                  type="color"
+                  value={customAccent}
+                  onChange={(event) => setCustomAccent(event.target.value)}
+                  className="h-8 w-12 cursor-pointer rounded-lg border border-zinc-200 bg-transparent p-0.5 dark:border-zinc-700"
+                  aria-label="사용자 포인트 컬러"
+                />
+              </label>
             </div>
           )}
         </div>
@@ -117,7 +135,7 @@ function AppHeader() {
           {accessToken ? (
             <button
               onClick={() => setMusicOpen((open) => !open)}
-              className="accent-soft accent-text rounded-full border px-3 py-1 text-[10px] font-semibold transition"
+              className="accent-soft accent-text rounded-full border px-3 py-0.4 text-[10px] font-semibold transition"
             >
               음악
             </button>
@@ -164,13 +182,32 @@ function App() {
   const isCalendarCollapsed = useCalendarStore((state) => state.isCollapsed)
   const isDarkMode = useUIStore((state) => state.isDarkMode)
   const accentColor = useUIStore((state) => state.accentColor)
+  const customAccent = useUIStore((state) => state.customAccent)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode)
     document.documentElement.dataset.accent = accentColor
+    const rootStyle = document.documentElement.style
+    if (accentColor === 'custom') {
+      rootStyle.setProperty('--accent', customAccent)
+      rootStyle.setProperty('--accent-hover', `color-mix(in srgb, ${customAccent} 82%, black)`)
+      rootStyle.setProperty('--accent-soft', `color-mix(in srgb, ${customAccent} 14%, white)`)
+      rootStyle.setProperty('--accent-border', `color-mix(in srgb, ${customAccent} 38%, white)`)
+      rootStyle.setProperty('--accent-text', `color-mix(in srgb, ${customAccent} 68%, black)`)
+    } else {
+      for (const property of [
+        '--accent',
+        '--accent-hover',
+        '--accent-soft',
+        '--accent-border',
+        '--accent-text',
+      ]) {
+        rootStyle.removeProperty(property)
+      }
+    }
     document.body.dataset.todoCompact = String(isCompact)
     document.body.dataset.calendarCollapsed = String(isCalendarCollapsed)
-  }, [accentColor, isCalendarCollapsed, isCompact, isDarkMode])
+  }, [accentColor, customAccent, isCalendarCollapsed, isCompact, isDarkMode])
 
   useEffect(() => {
     window.electronAPI?.setCalendarCollapsed(isCalendarCollapsed)
@@ -178,11 +215,10 @@ function App() {
 
   if (isCompact) {
     return (
-      <div className="flex h-screen min-w-[360px] flex-col overflow-hidden bg-white dark:bg-zinc-950">
+      <div className="flex h-screen min-w-[390px] flex-col overflow-hidden bg-[#f8f8f8] dark:bg-zinc-950">
         <SpotifyCallbackHandler />
         <PlayerSDKMount />
-        <AppHeader />
-        <div className="min-h-0 flex-1 p-2">
+        <div className="h-[390px] min-h-0 shrink-0">
           <TodoView />
         </div>
         <PlayerBar />
@@ -192,7 +228,7 @@ function App() {
 
   return (
     <div
-      className={`mx-auto flex h-screen w-full flex-col overflow-hidden bg-white transition-[max-width] duration-300 dark:bg-zinc-950 ${
+      className={`mx-auto flex h-screen w-full flex-col overflow-hidden bg-[#f8f8f8] transition-[max-width] duration-300 dark:bg-zinc-950 ${
         isCalendarCollapsed ? 'max-w-[376px]' : 'max-w-[1080px]'
       }`}
     >
@@ -207,12 +243,12 @@ function App() {
             : 'grid-cols-[300px_minmax(520px,1fr)]'
         }`}
       >
-        <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
           <TodoView />
         </section>
 
         <section
-          className={`overflow-hidden rounded-xl bg-white shadow-sm transition-[padding] duration-300 dark:bg-zinc-900 ${
+          className={`overflow-hidden rounded-xl border border-zinc-200 bg-white transition-[padding] duration-300 dark:border-zinc-800 dark:bg-zinc-900 ${
             isCalendarCollapsed ? 'p-1.5' : 'p-4'
           }`}
         >

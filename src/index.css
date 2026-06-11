@@ -66,7 +66,7 @@
 :root {
   --text: #62665b;
   --text-h: #20251b;
-  --bg: #f5f5f5;
+  --bg: #f8f8f8;
   --border: #dfe3d3;
   --code-bg: #edf0e3;
   --accent: #839b51;
@@ -78,9 +78,9 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'pretendard', Roboto, sans-serif;
-  --heading: system-ui, 'pretendard', Roboto, sans-serif;
-  --mono: ui-monospace, 'pretendard', Consolas, monospace;
+  --sans: 'Pretendard', sans-serif;
+  --heading: 'Pretendard', sans-serif;
+  --mono: 'Pretendard', monospace;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
@@ -92,9 +92,6 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 .dark {
@@ -194,12 +191,13 @@ body {
   margin: 0;
   min-width: 900px;
   overflow: hidden;
-  background: #fff;
+  background: #f8f8f8;
+  font-family: var(--sans);
 }
 
 body[data-todo-compact='true'],
 body[data-todo-compact='true'] #root {
-  min-width: 360px;
+  min-width: 390px;
 }
 
 body[data-calendar-collapsed='true'],
@@ -212,6 +210,13 @@ body[data-todo-compact='true'] .playerbar-inner {
   grid-template-columns: minmax(0, 1fr);
   height: 72px;
   padding-inline: 12px;
+}
+
+body[data-todo-compact='true'] .playerbar-controls {
+  width: 122%;
+  margin-left: -11%;
+  transform: scale(0.82);
+  transform-origin: center;
 }
 
 body[data-calendar-collapsed='true'] .playerbar-track,
@@ -244,9 +249,6 @@ h2 {
   line-height: 118%;
   letter-spacing: -0.24px;
   margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
 }
 p {
   margin: 0;
