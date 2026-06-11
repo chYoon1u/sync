@@ -14,6 +14,14 @@ export interface PlaylistTrack {
   addedAt: string
 }
 
+export interface SavedPlaylist {
+  id: string
+  name: string
+  tracks: PlaylistTrack[]
+  createdAt: string
+  updatedAt: string
+}
+
 export function spotifyTrackToPlaylistTrack(
   track: SpotifyTrack
 ): Omit<PlaylistTrack, 'id' | 'addedAt'> {

@@ -6,7 +6,7 @@ import { useCalendarStore } from '@/store/useCalendarStore'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 
 beforeEach(() => {
-  useTodoStore.setState({ todos: [], filter: 'all' })
+  useTodoStore.setState({ todos: [], filter: 'today' })
   useCalendarStore.setState({ events: [], selectedDate: '2026-06-10' })
 })
 
@@ -38,19 +38,26 @@ describe('CalendarGrid', () => {
     expect(onSelect).toHaveBeenCalledWith('2026-06-15')
   })
 
-  it('투두가 있는 날짜에 dot 렌더링', () => {
+  it('투두가 있는 날짜에 우선순위 점과 6글자 제목 렌더링', () => {
     useTodoStore.setState({
       todos: [{
-        id: '1', title: '테스트', completed: false,
+        id: '1', title: '캘린더긴제목테스트', completed: false,
         priority: 'high', dueDate: '2026-06-15', createdAt: '',
       }],
-      filter: 'all',
+      filter: 'today',
     })
     const { container } = render(
       <CalendarGrid year={2026} month={5} selectedDate="2026-06-10" onSelectDate={() => {}} />
     )
-    // dot span이 렌더링됐는지 확인 (bg-red-400 클래스)
-    const dots = container.querySelectorAll('.bg-red-400, .bg-red-500')
+    const dots = container.querySelectorAll('.bg-red-500')
     expect(dots.length).toBeGreaterThan(0)
+    expect(screen.getByText('캘린더긴제목')).toBeInTheDocument()
+  })
+
+  it('지나간 날짜는 회색 배경으로 표시', () => {
+    render(
+      <CalendarGrid year={2000} month={0} selectedDate="2000-01-10" onSelectDate={() => {}} />
+    )
+    expect(screen.getByTestId('calendar-day-2000-01-15').className).toContain('bg-zinc-100')
   })
 })

@@ -24,9 +24,13 @@ async function apiFetch<T>(
 }
 
 /** 트랙 검색 */
-export async function searchTracks(query: string, token: string): Promise<SpotifyTrack[]> {
-  const params = new URLSearchParams({ q: query, type: 'track', limit: '20', market: 'KR' })
-  const data = await apiFetch<SpotifySearchResponse>(`/search?${params}`, token)
+export async function searchTracks(
+  query: string,
+  token: string,
+  signal?: AbortSignal
+): Promise<SpotifyTrack[]> {
+  const params = new URLSearchParams({ q: query, type: 'track', limit: '10', market: 'KR' })
+  const data = await apiFetch<SpotifySearchResponse>(`/search?${params}`, token, { signal })
   return data.tracks.items
 }
 
@@ -35,11 +39,16 @@ export async function playTracks(
   deviceId: string,
   uris: string[],
   token: string,
-  offsetPosition = 0
+  offsetPosition = 0,
+  positionMs = 0
 ): Promise<void> {
   await apiFetch(`/me/player/play?device_id=${deviceId}`, token, {
     method: 'PUT',
-    body: JSON.stringify({ uris, offset: { position: offsetPosition } }),
+    body: JSON.stringify({
+      uris,
+      offset: { position: offsetPosition },
+      position_ms: Math.max(0, positionMs),
+    }),
   })
 }
 

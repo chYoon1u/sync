@@ -22,6 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.vite
 
 # Test & build outputs
 release
@@ -30,3 +31,7 @@ playwright-report
 docs/report/coverage
 docs/report/e2e-html
 docs/report/e2e-results
+
+# Local profiling experiments
+src/experiments/
+tests/component/player/PlayerStateExperiment.test.tsx

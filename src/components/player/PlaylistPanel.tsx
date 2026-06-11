@@ -1,102 +1,278 @@
+import { useState } from 'react'
 import { usePlayerStore } from '@/store/usePlayerStore'
 
 function msToTime(ms: number): string {
-  const s = Math.floor(ms / 1000)
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  const seconds = Math.floor(ms / 1000)
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
 export function PlaylistPanel() {
-  const { playlist, currentIndex, playerState, playAt, removeTrack, clearPlaylist } =
-    usePlayerStore()
+  const {
+    playlist,
+    savedPlaylists,
+    currentIndex,
+    playerState,
+    playAt,
+    removeTrack,
+    clearPlaylist,
+    reorderQueue,
+    createSavedPlaylist,
+    renameSavedPlaylist,
+    deleteSavedPlaylist,
+    loadSavedPlaylist,
+    reorderSavedPlaylist,
+    reorderSavedPlaylistTrack,
+  } = usePlayerStore()
+  const [tab, setTab] = useState<'queue' | 'saved'>('queue')
+  const [newPlaylistName, setNewPlaylistName] = useState('')
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
 
-  if (playlist.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-300 dark:text-zinc-600">
-        <svg className="w-10 h-10 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-        </svg>
-        <p className="text-xs">플레이리스트가 비어있습니다</p>
-        <p className="text-xs mt-1 opacity-60">검색탭에서 곡을 추가하세요</p>
-      </div>
-    )
+  const selectedPlaylist =
+    savedPlaylists.find((item) => item.id === selectedPlaylistId) ?? null
+
+  const saveCurrentQueue = () => {
+    if (createSavedPlaylist(newPlaylistName)) {
+      setNewPlaylistName('')
+      setTab('saved')
+    }
   }
 
   return (
-    <div className="flex flex-col gap-2 h-full">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">{playlist.length}곡</p>
+    <div className="flex h-full flex-col gap-3">
+      <div className="grid grid-cols-2 rounded-lg bg-zinc-100 p-1 text-xs dark:bg-zinc-900">
         <button
-          onClick={clearPlaylist}
-          className="text-xs text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition"
+          onClick={() => setTab('queue')}
+          className={`rounded-md px-2 py-1.5 transition ${
+            tab === 'queue' ? 'bg-white font-medium shadow-sm dark:bg-zinc-700' : 'text-zinc-400'
+          }`}
         >
-          전체 삭제
+          현재 재생 목록
+        </button>
+        <button
+          onClick={() => setTab('saved')}
+          className={`rounded-md px-2 py-1.5 transition ${
+            tab === 'saved' ? 'bg-white font-medium shadow-sm dark:bg-zinc-700' : 'text-zinc-400'
+          }`}
+        >
+          저장 플레이리스트
         </button>
       </div>
 
-      <ul className="flex-1 overflow-y-auto min-h-0 space-y-1">
-        {playlist.map((track, i) => {
-          const isCurrent = i === currentIndex
-          const isPlaying = isCurrent && playerState === 'playing'
-
-          return (
-            <li
-              key={track.id}
-              className={`group flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition ${
-                isCurrent
-                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50'
-                  : 'hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
-              }`}
-              onClick={() => playAt(i)}
+      {tab === 'queue' ? (
+        <>
+          <div className="flex gap-1.5">
+            <input
+              value={newPlaylistName}
+              onChange={(event) => setNewPlaylistName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') saveCurrentQueue()
+              }}
+              placeholder="플레이리스트 이름"
+              className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs outline-none dark:border-zinc-600 dark:bg-zinc-900"
+            />
+            <button
+              onClick={saveCurrentQueue}
+              disabled={!newPlaylistName.trim() || playlist.length === 0}
+              className="accent-bg rounded-lg px-2.5 py-1.5 text-xs font-medium text-white disabled:opacity-40"
             >
-              {/* 인덱스 / 재생 인디케이터 */}
-              <div className="w-7 shrink-0 flex items-center justify-center">
-                {isPlaying ? (
-                  <span className="flex gap-0.5 items-end h-4">
-                    {[1, 2, 3].map((n) => (
-                      <span
-                        key={n}
-                        className="w-0.5 bg-green-500 rounded-full animate-pulse"
-                        style={{ height: `${40 + n * 20}%`, animationDelay: `${n * 0.15}s` }}
-                      />
-                    ))}
-                  </span>
-                ) : (
-                  <span className={`text-xs ${isCurrent ? 'text-green-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
-                    {i + 1}
-                  </span>
-                )}
-              </div>
+              저장
+            </button>
+          </div>
 
-              <img
-                src={track.albumArt}
-                alt={track.albumName}
-                className="w-9 h-9 rounded-lg object-cover shrink-0 bg-zinc-200 dark:bg-zinc-700"
-              />
-
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${isCurrent ? 'text-green-600 dark:text-green-400' : 'text-zinc-800 dark:text-zinc-100'}`}>
-                  {track.title}
-                </p>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate">{track.artist}</p>
-              </div>
-
-              <span className="text-xs text-zinc-400 dark:text-zinc-500 shrink-0">
-                {msToTime(track.durationMs)}
-              </span>
-
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-zinc-400">{playlist.length}곡 · 드래그로 순서 변경</p>
+            {playlist.length > 0 && (
               <button
-                onClick={(e) => { e.stopPropagation(); removeTrack(track.id) }}
-                className="p-1 rounded-lg text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition shrink-0"
-                aria-label="제거"
+                onClick={clearPlaylist}
+                className="text-xs text-zinc-400 hover:text-red-500"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                전체 삭제
               </button>
-            </li>
-          )
-        })}
-      </ul>
+            )}
+          </div>
+
+          {playlist.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center text-xs text-zinc-400">
+              현재 재생 목록이 비어 있습니다
+            </div>
+          ) : (
+            <ul className="scrollbar-hidden min-h-0 flex-1 space-y-1 overflow-y-auto">
+              {playlist.map((track, index) => {
+                const isCurrent = index === currentIndex
+                const isPlaying = isCurrent && playerState === 'playing'
+
+                return (
+                  <li
+                    key={track.id}
+                    draggable
+                    onDragStart={() => setDragIndex(index)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      if (dragIndex !== null) reorderQueue(dragIndex, index)
+                      setDragIndex(null)
+                    }}
+                    onDragEnd={() => setDragIndex(null)}
+                    onClick={() => void playAt(index)}
+                    className={`group flex cursor-grab items-center gap-2 rounded-lg p-2 transition active:cursor-grabbing ${
+                      isCurrent ? 'accent-soft border' : 'hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                    }`}
+                  >
+                    <span className={`w-4 text-center text-xs ${isCurrent ? 'accent-text' : 'text-zinc-400'}`}>
+                      {isPlaying ? '▶' : index + 1}
+                    </span>
+                    <img
+                      src={track.albumArt}
+                      alt={track.albumName}
+                      className="h-8 w-8 rounded-md bg-zinc-200 object-cover dark:bg-zinc-700"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium">{track.title}</p>
+                      <p className="truncate text-[10px] text-zinc-400">{track.artist}</p>
+                    </div>
+                    <span className="text-[10px] text-zinc-400">{msToTime(track.durationMs)}</span>
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        removeTrack(track.id)
+                      }}
+                      className="text-zinc-300 opacity-0 hover:text-red-500 group-hover:opacity-100"
+                      aria-label={`${track.title} 제거`}
+                    >
+                      ×
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </>
+      ) : selectedPlaylist ? (
+        <>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => {
+                setSelectedPlaylistId(null)
+                setEditingName('')
+              }}
+              className="rounded-lg border border-zinc-200 px-2 text-xs dark:border-zinc-600"
+            >
+              ←
+            </button>
+            <input
+              value={editingName || selectedPlaylist.name}
+              onChange={(event) => setEditingName(event.target.value)}
+              className="min-w-0 flex-1 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs outline-none dark:border-zinc-600 dark:bg-zinc-900"
+            />
+            <button
+              onClick={() => {
+                renameSavedPlaylist(selectedPlaylist.id, editingName || selectedPlaylist.name)
+                setEditingName('')
+              }}
+              className="rounded-lg border border-zinc-200 px-2 text-xs dark:border-zinc-600"
+            >
+              이름 저장
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              loadSavedPlaylist(selectedPlaylist.id)
+              setTab('queue')
+            }}
+            className="accent-bg rounded-lg py-1.5 text-xs font-medium text-white"
+          >
+            현재 재생 목록으로 불러오기
+          </button>
+          <p className="text-xs text-zinc-400">
+            {selectedPlaylist.tracks.length}곡 · 드래그로 순서 변경
+          </p>
+          <ul className="scrollbar-hidden min-h-0 flex-1 space-y-1 overflow-y-auto">
+            {selectedPlaylist.tracks.map((track, index) => (
+              <li
+                key={track.id}
+                draggable
+                onDragStart={() => setDragIndex(index)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => {
+                  if (dragIndex !== null) {
+                    reorderSavedPlaylistTrack(selectedPlaylist.id, dragIndex, index)
+                  }
+                  setDragIndex(null)
+                }}
+                onDragEnd={() => setDragIndex(null)}
+                className="flex cursor-grab items-center gap-2 rounded-lg p-2 hover:bg-zinc-50 active:cursor-grabbing dark:hover:bg-zinc-700/50"
+              >
+                <span className="w-4 text-center text-xs text-zinc-400">{index + 1}</span>
+                <img
+                  src={track.albumArt}
+                  alt={track.albumName}
+                  className="h-8 w-8 rounded-md bg-zinc-200 object-cover dark:bg-zinc-700"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-medium">{track.title}</p>
+                  <p className="truncate text-[10px] text-zinc-400">{track.artist}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-zinc-400">
+            {savedPlaylists.length}개 · 드래그로 순서 변경
+          </p>
+          {savedPlaylists.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center text-center text-xs text-zinc-400">
+              현재 재생 목록에 곡을 넣고<br />이름을 지정해 저장하세요
+            </div>
+          ) : (
+            <ul className="scrollbar-hidden min-h-0 flex-1 space-y-1 overflow-y-auto">
+              {savedPlaylists.map((savedPlaylist, index) => (
+                <li
+                  key={savedPlaylist.id}
+                  draggable
+                  onDragStart={() => setDragIndex(index)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => {
+                    if (dragIndex !== null) reorderSavedPlaylist(dragIndex, index)
+                    setDragIndex(null)
+                  }}
+                  onDragEnd={() => setDragIndex(null)}
+                  className="group flex cursor-grab items-center gap-2 rounded-lg border border-zinc-100 p-2.5 active:cursor-grabbing dark:border-zinc-700"
+                >
+                  <button
+                    onClick={() => {
+                      setSelectedPlaylistId(savedPlaylist.id)
+                      setEditingName('')
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p className="truncate text-sm font-medium">{savedPlaylist.name}</p>
+                    <p className="text-[10px] text-zinc-400">{savedPlaylist.tracks.length}곡</p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      loadSavedPlaylist(savedPlaylist.id)
+                      setTab('queue')
+                    }}
+                    className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] dark:border-zinc-600"
+                  >
+                    불러오기
+                  </button>
+                  <button
+                    onClick={() => deleteSavedPlaylist(savedPlaylist.id)}
+                    className="text-zinc-300 opacity-0 hover:text-red-500 group-hover:opacity-100"
+                    aria-label={`${savedPlaylist.name} 삭제`}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </div>
   )
 }
