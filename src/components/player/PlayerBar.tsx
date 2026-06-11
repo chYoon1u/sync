@@ -46,6 +46,8 @@ export function PlayerBar() {
     <div
       className="w-full shrink-0 border-t border-zinc-100 bg-white dark:border-zinc-800 dark:bg-zinc-900"
       data-testid="player-bar"
+      onPointerEnter={requestSpotifySDK}
+      onFocusCapture={requestSpotifySDK}
     >
       <div className="playerbar-inner grid h-24 w-full grid-cols-[minmax(0,240px)_minmax(0,1fr)_minmax(0,160px)] items-center gap-4 px-4">
         <div className="playerbar-track flex min-w-0 items-center gap-3">
