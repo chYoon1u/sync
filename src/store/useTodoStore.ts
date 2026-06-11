@@ -1,10 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
-import type { Todo, Priority } from '@/types/todo'
+import type { Todo, Priority, FilterStatus } from '@/types/todo'
 
 interface TodoStore {
   todos: Todo[]
+  filter: FilterStatus
+  setFilter: (filter: FilterStatus) => void
   addTodo: (title: string, priority?: Priority, dueDate?: string) => void
   toggleTodo: (id: string) => void
   deleteTodo: (id: string) => void
@@ -15,9 +17,14 @@ export const useTodoStore = create<TodoStore>()(
   persist(
     immer((set) => ({
       todos: [],
+      filter: 'all',
+      setFilter: (filter) =>
+        set((state) => {
+          state.filter = filter
+        }),
       addTodo: (title, priority = 'medium', dueDate) =>
         set((state) => {
-          state.todos.push({
+          state.todos.unshift({
             id: crypto.randomUUID(),
             title,
             completed: false,
@@ -41,6 +48,6 @@ export const useTodoStore = create<TodoStore>()(
           if (todo) Object.assign(todo, updates)
         }),
     })),
-    { name: 'todo-store' }
+    { name: 'todo-store', partialize: (s) => ({ todos: s.todos }) }
   )
 )
