@@ -51,12 +51,12 @@ electron/
 
 ```bash
 VITE_SPOTIFY_CLIENT_ID=your_client_id_here
-VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173
+VITE_SPOTIFY_REDIRECT_URI=http://127.0.0.1:5173
 ```
 
 Spotify Developer Dashboard 설정:
 1. [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) 에서 앱 생성
-2. **Redirect URIs** 에 `http://localhost:5173` 추가
+2. **Redirect URIs** 에 `http://127.0.0.1:5173` 추가 (`localhost`는 Spotify 정책상 허용되지 않음)
 3. Client ID를 `.env.local`에 설정
 
 ## 개발 명령어

@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { act } from 'react'
 import { TodoItem } from '@/components/todo/TodoItem'
 import { useTodoStore } from '@/store/useTodoStore'
 import type { Todo } from '@/types/todo'
@@ -16,47 +15,38 @@ const mockTodo: Todo = {
 }
 
 beforeEach(() => {
-  useTodoStore.setState({ todos: [mockTodo], filter: 'all' })
+  useTodoStore.setState({ todos: [mockTodo], filter: 'allDates' })
 })
 
 describe('TodoItem', () => {
+  const renderItem = () => render(
+    <TodoItem todo={mockTodo} onOpen={vi.fn()} onDragStart={vi.fn()} onDrop={vi.fn()} />
+  )
+
   it('제목과 우선순위 배지 렌더링', () => {
-    render(<TodoItem todo={mockTodo} />)
+    renderItem()
     expect(screen.getByText('테스트 할 일')).toBeInTheDocument()
     expect(screen.getByText('높음')).toBeInTheDocument()
   })
 
   it('완료 버튼 클릭 → 스토어에 반영', async () => {
     const user = userEvent.setup()
-    render(<TodoItem todo={mockTodo} />)
+    renderItem()
     await user.click(screen.getByRole('button', { name: '완료로 표시' }))
     expect(useTodoStore.getState().todos[0].completed).toBe(true)
   })
 
-  it('수정 버튼 클릭 → 편집 모드 진입', async () => {
+  it('항목 클릭 → 상세 열기 요청', async () => {
     const user = userEvent.setup()
-    render(<TodoItem todo={mockTodo} />)
-    await user.hover(screen.getByText('테스트 할 일'))
-    await user.click(screen.getByRole('button', { name: '수정' }))
-    expect(screen.getByDisplayValue('테스트 할 일')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '저장' })).toBeInTheDocument()
-  })
-
-  it('편집 후 저장 → 스토어 업데이트', async () => {
-    const user = userEvent.setup()
-    render(<TodoItem todo={mockTodo} />)
-    await user.hover(screen.getByText('테스트 할 일'))
-    await user.click(screen.getByRole('button', { name: '수정' }))
-    const input = screen.getByDisplayValue('테스트 할 일')
-    await user.clear(input)
-    await user.type(input, '수정된 할 일')
-    await user.click(screen.getByRole('button', { name: '저장' }))
-    expect(useTodoStore.getState().todos[0].title).toBe('수정된 할 일')
+    const onOpen = vi.fn()
+    render(<TodoItem todo={mockTodo} onOpen={onOpen} onDragStart={vi.fn()} onDrop={vi.fn()} />)
+    await user.click(screen.getByText('테스트 할 일'))
+    expect(onOpen).toHaveBeenCalledWith(mockTodo)
   })
 
   it('삭제 버튼 클릭 → 스토어에서 제거', async () => {
     const user = userEvent.setup()
-    render(<TodoItem todo={mockTodo} />)
+    renderItem()
     await user.hover(screen.getByText('테스트 할 일'))
     await user.click(screen.getByRole('button', { name: '삭제' }))
     expect(useTodoStore.getState().todos).toHaveLength(0)
@@ -64,7 +54,7 @@ describe('TodoItem', () => {
 
   it('완료 항목에 취소선 적용', () => {
     const completedTodo = { ...mockTodo, completed: true }
-    render(<TodoItem todo={completedTodo} />)
+    render(<TodoItem todo={completedTodo} onOpen={vi.fn()} onDragStart={vi.fn()} onDrop={vi.fn()} />)
     const title = screen.getByText('테스트 할 일')
     expect(title.className).toContain('line-through')
   })

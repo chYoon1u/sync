@@ -8,9 +8,11 @@ interface AuthStore {
   refreshToken: string | null
   expiresAt: number | null
   isInitializing: boolean
+  authError: string | null
   setTokens: (accessToken: string, refreshToken: string, expiresAt: number) => void
   clearTokens: () => void
   setInitializing: (v: boolean) => void
+  setAuthError: (message: string | null) => void
   /** 유효한 액세스 토큰 반환 — 만료 임박 시 자동 갱신 */
   getValidToken: () => Promise<string | null>
 }
@@ -22,12 +24,14 @@ export const useAuthStore = create<AuthStore>()(
       refreshToken: null,
       expiresAt: null,
       isInitializing: false,
+      authError: null,
 
       setTokens: (accessToken, refreshToken, expiresAt) =>
         set((s) => {
           s.accessToken = accessToken
           s.refreshToken = refreshToken
           s.expiresAt = expiresAt
+          s.authError = null
         }),
 
       clearTokens: () =>
@@ -40,6 +44,11 @@ export const useAuthStore = create<AuthStore>()(
       setInitializing: (v) =>
         set((s) => {
           s.isInitializing = v
+        }),
+
+      setAuthError: (message) =>
+        set((s) => {
+          s.authError = message
         }),
 
       getValidToken: async () => {

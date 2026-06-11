@@ -19,6 +19,7 @@ export function DayDetail({ selectedDate }: Props) {
   const { todos, addTodo, toggleTodo, deleteTodo } = useTodoStore()
   const [inputValue, setInputValue] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
+  const [dueTime, setDueTime] = useState('')
 
   const dayTodos = todos.filter((t) => t.dueDate === selectedDate)
 
@@ -26,9 +27,10 @@ export function DayDetail({ selectedDate }: Props) {
     e.preventDefault()
     const trimmed = inputValue.trim()
     if (!trimmed) return
-    addTodo(trimmed, priority, selectedDate)
+    addTodo(trimmed, priority, selectedDate, undefined, dueTime || undefined)
     setInputValue('')
     setPriority('medium')
+    setDueTime('')
   }
 
   return (
@@ -49,12 +51,12 @@ export function DayDetail({ selectedDate }: Props) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="이 날짜에 추가..."
-            className="flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-600 rounded-xl px-3 py-2 text-sm text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-400 transition"
+            className="accent-focus flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-600 rounded-xl px-3 py-2 text-sm text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none transition"
           />
           <button
             type="submit"
             disabled={!inputValue.trim()}
-            className="px-3 py-2 bg-violet-500 hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm rounded-xl transition"
+            className="accent-bg accent-bg-hover px-3 py-2 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm rounded-xl transition"
           >
             추가
           </button>
@@ -73,6 +75,13 @@ export function DayDetail({ selectedDate }: Props) {
             </button>
           ))}
         </div>
+        <input
+          type="time"
+          value={dueTime}
+          onChange={(event) => setDueTime(event.target.value)}
+          aria-label="완료 시간"
+          className="accent-focus w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs text-zinc-600 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+        />
       </form>
 
       {/* 투두 목록 */}
@@ -100,8 +109,8 @@ export function DayDetail({ selectedDate }: Props) {
                   onClick={() => toggleTodo(todo.id)}
                   className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                     todo.completed
-                      ? 'bg-violet-500 border-violet-500'
-                      : 'border-zinc-300 dark:border-zinc-500 hover:border-violet-400'
+                      ? 'accent-bg accent-border'
+                      : 'border-zinc-300 dark:border-zinc-500'
                   }`}
                   aria-label={todo.completed ? '완료 취소' : '완료로 표시'}
                 >
@@ -119,6 +128,11 @@ export function DayDetail({ selectedDate }: Props) {
 
                 {/* 우선순위 + 삭제 */}
                 <div className="flex items-center gap-1.5 shrink-0">
+                  {todo.dueTime && (
+                    <time className="text-xs font-semibold tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {todo.dueTime}
+                    </time>
+                  )}
                   <span className={`px-1.5 py-0.5 rounded-md text-xs font-medium ${PRIORITY_BADGE[todo.priority]}`}>
                     {PRIORITY_LABEL[todo.priority]}
                   </span>
