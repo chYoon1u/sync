@@ -2,6 +2,17 @@ export type Priority = 'high' | 'medium' | 'low'
 
 export type FilterStatus = 'today' | 'allDates'
 
+export interface RoutineTemplate {
+  id: string
+  title: string
+  priority: Priority
+  dueTime?: string
+  memo?: string
+  scheduledDate?: string
+  weekdays: number[]
+  createdAt: string
+}
+
 export interface Todo {
   id: string
   title: string
@@ -10,6 +21,8 @@ export interface Todo {
   dueDate?: string
   dueTime?: string
   memo?: string
+  routineId?: string
+  seriesId?: string
   createdAt: string
 }
 

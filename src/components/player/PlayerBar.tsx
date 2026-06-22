@@ -14,7 +14,7 @@ export function PlayerBar() {
     currentIndex,
     playerState,
     volume,
-    isRepeat,
+    repeatMode,
     isShuffle,
     progressMs,
     durationMs,
@@ -30,7 +30,10 @@ export function PlayerBar() {
   const { accessToken } = useAuthStore()
 
   const currentTrack = playlist[currentIndex] ?? null
-  const progress = durationMs > 0 ? (progressMs / durationMs) * 100 : 0
+  const safeProgressMs = Math.max(0, Math.min(progressMs, durationMs || progressMs))
+  const progress = durationMs > 0
+    ? Math.max(0, Math.min(100, (safeProgressMs / durationMs) * 100))
+    : 0
   const handleTogglePlay = () => {
     if (_sdkPlayer) {
       void togglePlay()
@@ -50,7 +53,7 @@ export function PlayerBar() {
       onFocusCapture={requestSpotifySDK}
     >
       <div className="playerbar-inner grid h-24 w-full grid-cols-[minmax(0,240px)_minmax(0,1fr)_minmax(0,160px)] items-center gap-4 px-4">
-        <div className="playerbar-track flex min-w-0 items-center gap-3">
+        <div className="playerbar-track flex min-w-0 items-center gap-3 text-left">
           {currentTrack ? (
             <>
               <img
@@ -58,7 +61,7 @@ export function PlayerBar() {
                 alt={currentTrack.albumName}
                 className="h-12 w-12 rounded-xl bg-zinc-200 object-cover shadow-sm dark:bg-zinc-700"
               />
-              <div className="min-w-0">
+              <div className="min-w-0 text-left">
                 <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">
                   {currentTrack.title}
                 </p>
@@ -83,7 +86,7 @@ export function PlayerBar() {
           <div className="flex items-center gap-4">
             <button
               onClick={toggleShuffle}
-              className={`rounded-lg p-1.5 transition ${
+              className={`relative rounded-lg p-1.5 transition ${
                 isShuffle
                   ? 'accent-text'
                   : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300'
@@ -109,7 +112,7 @@ export function PlayerBar() {
             <button
               onClick={handleTogglePlay}
               disabled={!currentTrack}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white shadow-md transition-transform hover:scale-105 disabled:opacity-30 dark:bg-white dark:text-zinc-900"
+              className="accent-bg accent-bg-hover flex h-10 w-10 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-105 disabled:opacity-30"
               aria-label={playerState === 'playing' ? '일시정지' : '재생'}
             >
               {playerState === 'playing' ? (
@@ -136,34 +139,50 @@ export function PlayerBar() {
 
             <button
               onClick={toggleRepeat}
-              className={`rounded-lg p-1.5 transition ${
-                isRepeat
+              className={`relative rounded-lg p-1.5 transition ${
+                repeatMode !== 'off'
                   ? 'accent-text'
                   : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300'
               }`}
-              aria-label="반복"
+              aria-label={
+                repeatMode === 'off'
+                  ? '반복 꺼짐'
+                  : repeatMode === 'context'
+                    ? '목록 반복'
+                    : '한 곡 반복'
+              }
+              title={
+                repeatMode === 'off'
+                  ? '반복 꺼짐'
+                  : repeatMode === 'context'
+                    ? '목록 반복'
+                    : '한 곡 반복'
+              }
             >
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
               </svg>
+              {repeatMode === 'track' && (
+                <span className="absolute text-[8px] font-bold">1</span>
+              )}
             </button>
           </div>
 
           <div className="flex w-full items-center gap-3">
             <span className="w-10 text-right text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
-              {msToTime(progressMs)}
+              {msToTime(safeProgressMs)}
             </span>
             <div className="group relative h-1.5 flex-1">
               <div className="absolute inset-0 rounded-full bg-zinc-200 dark:bg-zinc-700" />
               <div
-                className="absolute inset-y-0 left-0 rounded-full bg-zinc-800 transition-colors group-hover:bg-[var(--accent)] dark:bg-white"
+                className="accent-bg absolute inset-y-0 left-0 rounded-full"
                 style={{ width: `${progress}%` }}
               />
               <input
                 type="range"
                 min={0}
                 max={durationMs || 100}
-                value={progressMs}
+                value={safeProgressMs}
                 onChange={(e) => seekTo(Number(e.target.value))}
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                 aria-label="재생 위치"

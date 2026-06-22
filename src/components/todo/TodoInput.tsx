@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useTodoStore } from '@/store/useTodoStore'
 import type { Priority } from '@/types/todo'
+import { localDateKey } from '@/utils/todo'
+import { RoutinePanel } from './RoutinePanel'
 
 const PRIORITIES: { value: Priority; label: string }[] = [
   { value: 'high', label: '높음' },
@@ -14,27 +16,32 @@ const PRIORITY_SELECTED: Record<Priority, string> = {
   low: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
 }
 
-function localDateKey(date = new Date()): string {
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10)
-}
-
 export function TodoInput() {
   const addTodo = useTodoStore((state) => state.addTodo)
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
   const [dueDate, setDueDate] = useState(localDateKey)
   const [dueTime, setDueTime] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [isRoutineOpen, setRoutineOpen] = useState(false)
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     const trimmed = title.trim()
     if (!trimmed) return
-    addTodo(trimmed, priority, dueDate || undefined, undefined, dueTime || undefined)
+    addTodo(
+      trimmed,
+      priority,
+      dueDate || undefined,
+      undefined,
+      dueTime || undefined,
+      endDate || undefined
+    )
     setTitle('')
     setDueDate(localDateKey())
     setPriority('medium')
     setDueTime('')
+    setEndDate('')
   }
 
   return (
@@ -79,21 +86,42 @@ export function TodoInput() {
         </div>
       </div>
 
-      <div className="flex min-w-0 items-center gap-1.5">
+      <div className="grid min-w-0 grid-cols-2 gap-1.5">
         <input
           type="date"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
-          className="accent-focus min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+          aria-label="시작 날짜"
+          className="accent-focus min-w-0 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
         />
         <input
           type="time"
           value={dueTime}
           onChange={(event) => setDueTime(event.target.value)}
           aria-label="완료 시간"
-          className="accent-focus w-28 shrink-0 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+          className="accent-focus min-w-0 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
         />
       </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        <label className="text-[10px] text-zinc-400">
+          기간 종료일
+          <input
+            type="date"
+            min={dueDate}
+            value={endDate}
+            onChange={(event) => setEndDate(event.target.value)}
+            className="mt-0.5 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] text-zinc-600 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => setRoutineOpen((open) => !open)}
+          className="self-end rounded-lg bg-zinc-100 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-300"
+        >
+          {isRoutineOpen ? '루틴 닫기' : '루틴 관리'}
+        </button>
+      </div>
+      {isRoutineOpen && <RoutinePanel />}
     </form>
   )
 }

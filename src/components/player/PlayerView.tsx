@@ -60,7 +60,7 @@ export function PlayerView() {
 
         <div className="text-center">
           <h3 className="mb-1 text-base font-semibold text-zinc-800 dark:text-zinc-100">Spotify 연동</h3>
-          <p className="text-xs leading-relaxed text-zinc-400 dark:text-zinc-500">
+          <p className="text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
             Spotify Premium 계정이 필요합니다.
           </p>
         </div>
@@ -114,7 +114,7 @@ export function PlayerView() {
           <p className="truncate text-base font-semibold text-zinc-800 dark:text-zinc-100">
             {currentTrack?.title ?? '재생할 곡을 추가해 주세요'}
           </p>
-          <p className="mt-1 truncate text-xs text-zinc-400 dark:text-zinc-500">
+            <p className="mt-1 truncate text-[10px] text-zinc-400 dark:text-zinc-500">
             {currentTrack?.artist ?? 'Spotify에서 곡을 검색할 수 있습니다'}
           </p>
         </div>
@@ -172,7 +172,7 @@ export function PlayerView() {
                 <h3 id="add-track-title" className="text-lg font-semibold text-zinc-900 dark:text-white">
                   현재 재생 목록에 곡 추가
                 </h3>
-                <p className="mt-1 text-xs text-zinc-400">Spotify에서 원하는 곡을 검색하세요.</p>
+                <p className="mt-1 text-[10px] text-zinc-400">Spotify에서 원하는 곡을 검색하세요.</p>
               </div>
 
               <button

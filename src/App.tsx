@@ -3,6 +3,8 @@ import { TodoView } from '@/components/todo/TodoView'
 import { CalendarView } from '@/components/calendar/CalendarView'
 import { PlayerView } from '@/components/player/PlayerView'
 import { PlayerBar } from '@/components/player/PlayerBar'
+import { TimeTrackerView } from '@/components/tracker/TimeTrackerView'
+import { TimerView } from '@/components/timer/TimerView'
 import { useSpotifyPlayer } from '@/hooks/useSpotifyPlayer'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useTodoStore } from '@/store/useTodoStore'
@@ -58,8 +60,10 @@ function AppHeader() {
     isDarkMode,
     accentColor,
     customAccent,
+    activeTab,
     setAccentColor,
     setCustomAccent,
+    setActiveTab,
     toggleDarkMode,
   } = useUIStore()
 
@@ -82,20 +86,52 @@ function AppHeader() {
     }
   }
 
+  const headerTabs = [
+    { id: 'schedule', label: 'Schedule', icon: '/Schedule.svg' },
+    { id: 'timer', label: 'Timer', icon: '/Timer.svg' },
+    { id: 'todo', label: 'Todo', icon: '/Todo.svg' },
+    { id: 'calendar', label: 'Calendar', icon: '/Calendar.svg' },
+  ] as const
+
   return (
-    <header className="relative z-40 flex h-9 shrink-0 items-center border-b border-zinc-200 bg-white px-3 dark:border-zinc-800 dark:bg-zinc-950">
-      <h1 className="m-0 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
+    <header className="relative z-40 flex h-10 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-3 dark:border-zinc-800 dark:bg-zinc-950">
+      <nav className="flex items-center gap-1" aria-label="주요 화면">
+        {headerTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            aria-label={tab.label}
+            aria-pressed={activeTab === tab.id}
+            title={tab.label}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${
+              activeTab === tab.id
+                ? 'accent-soft'
+                : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+            }`}
+          >
+            <img src={tab.icon} alt="" className="h-4 w-4" aria-hidden="true" />
+          </button>
+        ))}
+      </nav>
+
+      <h1 className="pointer-events-none absolute left-1/2 m-0 -translate-x-1/2 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
         Sync
       </h1>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="flex items-center gap-1">
         {loginError && <span className="max-w-64 truncate text-[10px] text-red-500">{loginError}</span>}
         <div ref={settingsRef} className="relative">
           <button
             onClick={() => setSettingsOpen((open) => !open)}
-            className="rounded-full border border-zinc-200 bg-white px-3 py-0.4 text-[10px] font-semibold text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+            className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${
+              isSettingsOpen ? 'accent-soft' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+            }`}
+            aria-label="설정"
+            aria-expanded={isSettingsOpen}
+            title="설정"
           >
-            설정
+            <img src="/Settings.svg" alt="" className="h-4 w-4" aria-hidden="true" />
           </button>
           {isSettingsOpen && (
             <div className="absolute right-0 top-8 w-52 rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
@@ -135,17 +171,24 @@ function AppHeader() {
           {accessToken ? (
             <button
               onClick={() => setMusicOpen((open) => !open)}
-              className="accent-soft accent-text rounded-full border px-3 py-0.4 text-[10px] font-semibold transition"
+              className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${
+                isMusicOpen ? 'accent-soft' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+              aria-label="음악"
+              aria-expanded={isMusicOpen}
+              title="음악"
             >
-              음악
+              <img src="/Music.svg" alt="" className="h-4 w-4" aria-hidden="true" />
             </button>
           ) : (
             <button
               onClick={login}
               disabled={isInitializing}
-              className="accent-soft accent-text rounded-full border px-3 py-1 text-[10px] font-semibold transition disabled:opacity-50"
+              className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-zinc-100 disabled:opacity-40 dark:hover:bg-zinc-800"
+              aria-label={isInitializing ? 'Spotify 연결 중' : 'Spotify 로그인'}
+              title={isInitializing ? 'Spotify 연결 중' : 'Spotify 로그인'}
             >
-              {isInitializing ? '연결 중' : 'Spotify 로그인'}
+              <img src="/Music.svg" alt="" className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
 
@@ -162,13 +205,13 @@ function AppHeader() {
           aria-checked={isDarkMode}
           aria-label="다크 모드"
           onClick={toggleDarkMode}
-          className={`relative h-5 w-9 rounded-full transition ${
+          className={`relative h-4 w-7 rounded-full transition ${
             isDarkMode ? 'accent-bg' : 'bg-zinc-300'
           }`}
         >
           <span
-            className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-              isDarkMode ? 'translate-x-4' : 'translate-x-0'
+            className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+              isDarkMode ? 'translate-x-3' : 'translate-x-0'
             }`}
           />
         </button>
@@ -183,6 +226,7 @@ function App() {
   const isDarkMode = useUIStore((state) => state.isDarkMode)
   const accentColor = useUIStore((state) => state.accentColor)
   const customAccent = useUIStore((state) => state.customAccent)
+  const activeTab = useUIStore((state) => state.activeTab)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode)
@@ -237,22 +281,13 @@ function App() {
       <AppHeader />
 
       <main
-        className={`grid min-h-0 flex-1 gap-2 p-2 transition-[grid-template-columns] duration-300 ${
-          isCalendarCollapsed
-            ? 'grid-cols-[300px_52px]'
-            : 'grid-cols-[300px_minmax(520px,1fr)]'
-        }`}
+        className="min-h-0 flex-1 p-2"
       >
-        <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <TodoView />
-        </section>
-
-        <section
-          className={`overflow-hidden rounded-xl border border-zinc-200 bg-white transition-[padding] duration-300 dark:border-zinc-800 dark:bg-zinc-900 ${
-            isCalendarCollapsed ? 'p-1.5' : 'p-4'
-          }`}
-        >
-          <CalendarView />
+        <section className="h-full overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          {activeTab === 'schedule' && <TimeTrackerView compact={isCalendarCollapsed} />}
+          {activeTab === 'timer' && <TimerView />}
+          {activeTab === 'todo' && <TodoView />}
+          {activeTab === 'calendar' && <CalendarView />}
         </section>
       </main>
 

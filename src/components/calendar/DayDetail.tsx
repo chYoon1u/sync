@@ -37,7 +37,7 @@ export function DayDetail({ selectedDate }: Props) {
     <div className="flex flex-col gap-4 h-full">
       {/* 날짜 헤더 */}
       <div>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide mb-0.5">선택된 날짜</p>
+        <p className="mb-0.5 text-[10px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">선택된 날짜</p>
         <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">
           {formatDate(selectedDate)}
         </h3>
@@ -56,9 +56,13 @@ export function DayDetail({ selectedDate }: Props) {
           <button
             type="submit"
             disabled={!inputValue.trim()}
-            className="accent-bg accent-bg-hover px-3 py-2 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm rounded-xl transition"
+            className="accent-bg accent-bg-hover flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="이 날짜에 투두 추가"
+            title="투두 추가"
           >
-            추가
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+            </svg>
           </button>
         </div>
         <div className="flex gap-1">
@@ -91,7 +95,7 @@ export function DayDetail({ selectedDate }: Props) {
             <svg className="w-10 h-10 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <p className="text-xs">이 날짜에 할 일이 없습니다</p>
+            <p className="text-[10px]">이 날짜에 할 일이 없습니다</p>
           </div>
         ) : (
           <ul className="space-y-2">
