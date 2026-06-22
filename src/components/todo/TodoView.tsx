@@ -3,11 +3,7 @@ import { useTodoStore } from '@/store/useTodoStore'
 import { TodoInput } from './TodoInput'
 import { TodoFilter } from './TodoFilter'
 import { TodoList } from './TodoList'
-
-function localDateKey(date = new Date()): string {
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10)
-}
+import { localDateKey } from '@/utils/todo'
 
 export function TodoView() {
   const {
@@ -20,12 +16,18 @@ export function TodoView() {
   } = useTodoStore()
   const today = localDateKey()
   const todayTodos = todos.filter((todo) => todo.dueDate === today)
-  const remaining = todos.filter((todo) => !todo.completed).length
+  const materializeRoutines = useTodoStore((state) => state.materializeRoutines)
   const isElectron = Boolean(window.electronAPI)
 
   useEffect(() => {
     if (isCompact) setFilter('today')
   }, [isCompact, setFilter])
+
+  useEffect(() => {
+    materializeRoutines()
+    const timer = window.setInterval(() => materializeRoutines(), 60_000)
+    return () => window.clearInterval(timer)
+  }, [materializeRoutines])
 
   useEffect(() => {
     if (!window.electronAPI) return
@@ -65,7 +67,7 @@ export function TodoView() {
 
         <div className="scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-4 py-3">
           {todayTodos.length === 0 ? (
-            <p className="py-10 text-center text-sm text-zinc-400">오늘 할 일이 없습니다.</p>
+            <p className="py-10 text-center text-[11px] text-zinc-400">오늘 할 일이 없습니다.</p>
           ) : (
             <ul className="space-y-1">
               {todayTodos.map((todo) => (
@@ -113,8 +115,7 @@ export function TodoView() {
     <div className="flex h-full min-w-0 flex-col gap-3 overflow-hidden">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="truncate text-xl font-semibold text-zinc-800 dark:text-zinc-100">투두리스트</h2>
-          <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">{remaining}개 남음</p>
+          <h2 className="compact-section-title truncate font-semibold text-zinc-800 dark:text-zinc-100">TO DO LIST</h2>
         </div>
         <button
           onClick={() => changeCompactMode(true)}

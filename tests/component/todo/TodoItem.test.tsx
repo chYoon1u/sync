@@ -58,4 +58,20 @@ describe('TodoItem', () => {
     const title = screen.getByText('테스트 할 일')
     expect(title.className).toContain('line-through')
   })
+
+  it('기한이 지난 미완료 항목을 다음 날로 넘김', async () => {
+    const overdueTodo = { ...mockTodo, dueDate: '2000-01-01' }
+    useTodoStore.setState({ todos: [overdueTodo] })
+    const user = userEvent.setup()
+    render(
+      <TodoItem
+        todo={overdueTodo}
+        onOpen={vi.fn()}
+        onDragStart={vi.fn()}
+        onDrop={vi.fn()}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: '다음 날로 넘기기' }))
+    expect(useTodoStore.getState().todos[0].dueDate).toBe('2000-01-02')
+  })
 })

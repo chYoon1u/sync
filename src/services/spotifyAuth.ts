@@ -1,6 +1,12 @@
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID as string
-const REDIRECT_URI = (import.meta.env.VITE_SPOTIFY_REDIRECT_URI as string | undefined)
-  ?? window.location.origin
+const CONFIGURED_REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI as
+  | string
+  | undefined
+// 개발 서버는 명시한 loopback URI를 사용하고, Vercel/Electron 프로덕션 빌드는
+// 실제로 앱이 열린 origin으로 돌아와야 다른 환경의 주소로 잘못 이동하지 않는다.
+const REDIRECT_URI = import.meta.env.DEV
+  ? CONFIGURED_REDIRECT_URI ?? window.location.origin
+  : window.location.origin
 const PKCE_VERIFIER_KEY = 'spotify_pkce_verifier'
 const AUTH_STATE_KEY = 'spotify_auth_state'
 

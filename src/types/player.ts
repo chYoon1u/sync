@@ -1,6 +1,7 @@
 import type { SpotifyTrack, SpotifyPlaybackState } from './spotify'
 
 export type PlayerState = 'playing' | 'paused' | 'stopped'
+export type RepeatMode = 'off' | 'context' | 'track'
 
 export interface PlaylistTrack {
   id: string

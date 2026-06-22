@@ -5,6 +5,8 @@ import { useTodoStore } from '@/store/useTodoStore'
 beforeEach(() => {
   useTodoStore.setState({
     todos: [],
+    routines: [],
+    dismissedRoutineOccurrences: [],
     filter: 'today',
     isCompact: false,
     isAlwaysOnTop: false,
@@ -91,5 +93,59 @@ describe('useTodoStore', () => {
     })
     expect(useTodoStore.getState().isCompact).toBe(false)
     expect(useTodoStore.getState().isAlwaysOnTop).toBe(false)
+  })
+
+  it('기간 설정 시 시작일부터 종료일까지 매일 투두 생성', () => {
+    act(() =>
+      useTodoStore
+        .getState()
+        .addTodo('기간 투두', 'medium', '2026-06-22', undefined, '09:00', '2026-06-24')
+    )
+    expect(useTodoStore.getState().todos.map((todo) => todo.dueDate)).toEqual([
+      '2026-06-22',
+      '2026-06-23',
+      '2026-06-24',
+    ])
+    expect(new Set(useTodoStore.getState().todos.map((todo) => todo.seriesId)).size).toBe(1)
+  })
+
+  it('미완료 투두를 다음 날로 이월', () => {
+    act(() => useTodoStore.getState().addTodo('이월', 'medium', '2026-06-22'))
+    const id = useTodoStore.getState().todos[0].id
+    act(() => useTodoStore.getState().moveTodoToNextDay(id))
+    expect(useTodoStore.getState().todos[0].dueDate).toBe('2026-06-23')
+  })
+
+  it('요일 루틴을 생성하고 같은 날짜 중복 생성을 막음', () => {
+    act(() =>
+      useTodoStore.getState().addRoutine({
+        title: '월요일 루틴',
+        priority: 'low',
+        weekdays: [1],
+      })
+    )
+    const routine = useTodoStore.getState().routines[0]
+    act(() => useTodoStore.getState().materializeRoutines('2026-06-22', 7))
+    act(() => useTodoStore.getState().materializeRoutines('2026-06-22', 7))
+    const occurrences = useTodoStore
+      .getState()
+      .todos.filter((todo) => todo.routineId === routine.id && todo.dueDate === '2026-06-22')
+    expect(occurrences).toHaveLength(1)
+  })
+
+  it('삭제한 루틴 발생 항목은 다시 생성하지 않음', () => {
+    act(() =>
+      useTodoStore.getState().addRoutine({
+        title: '삭제할 루틴',
+        priority: 'medium',
+        scheduledDate: '2026-06-22',
+        weekdays: [],
+      })
+    )
+    const todo = useTodoStore.getState().todos.find((item) => item.dueDate === '2026-06-22')
+    expect(todo).toBeDefined()
+    act(() => useTodoStore.getState().deleteTodo(todo!.id))
+    act(() => useTodoStore.getState().materializeRoutines('2026-06-22', 1))
+    expect(useTodoStore.getState().todos).toHaveLength(0)
   })
 })

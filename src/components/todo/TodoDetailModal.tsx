@@ -15,11 +15,13 @@ const PRIORITIES: { value: Priority; label: string }[] = [
 
 export function TodoDetailModal({ todo, onClose }: Props) {
   const updateTodo = useTodoStore((state) => state.updateTodo)
+  const setTodoPeriod = useTodoStore((state) => state.setTodoPeriod)
   const [title, setTitle] = useState(todo.title)
   const [memo, setMemo] = useState(todo.memo ?? '')
   const [priority, setPriority] = useState(todo.priority)
   const [dueDate, setDueDate] = useState(todo.dueDate ?? '')
   const [dueTime, setDueTime] = useState(todo.dueTime ?? '')
+  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -39,6 +41,7 @@ export function TodoDetailModal({ todo, onClose }: Props) {
       dueDate: dueDate || undefined,
       dueTime: dueTime || undefined,
     })
+    if (dueDate && endDate > dueDate) setTodoPeriod(todo.id, endDate)
     onClose()
   }
 
@@ -69,7 +72,7 @@ export function TodoDetailModal({ todo, onClose }: Props) {
           <textarea value={memo} onChange={(event) => setMemo(event.target.value)} rows={7} placeholder="세부 내용이나 기억할 내용을 적어두세요" className="accent-focus mt-1.5 w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm leading-relaxed text-zinc-800 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100" />
         </label>
 
-        <div className="mt-4 grid grid-cols-[1fr_150px_110px] gap-3">
+        <div className="mt-4 grid grid-cols-[1fr_140px_140px] gap-3">
           <div className="min-w-0">
             <p className="mb-1.5 text-xs font-semibold text-zinc-500">우선순위</p>
             <div className="flex gap-1.5">
@@ -89,6 +92,16 @@ export function TodoDetailModal({ todo, onClose }: Props) {
             <input type="time" value={dueTime} onChange={(event) => setDueTime(event.target.value)} className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-xs text-zinc-600 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300" />
           </label>
         </div>
+        <label className="mt-3 block text-xs font-semibold text-zinc-500">
+          기간 종료일
+          <input
+            type="date"
+            min={dueDate}
+            value={endDate}
+            onChange={(event) => setEndDate(event.target.value)}
+            className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-xs text-zinc-600 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+          />
+        </label>
 
         <div className="mt-6 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-xl bg-zinc-100 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-300">취소</button>

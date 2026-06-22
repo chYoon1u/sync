@@ -24,7 +24,7 @@ export function CalendarHeader({ year, month, onPrev, onNext, onCollapse }: Prop
         </button>
       </div>
 
-      <h2 className="m-0 text-center text-xl font-semibold text-zinc-800 dark:text-zinc-100">
+      <h2 className="compact-section-title m-0 text-center font-semibold text-zinc-800 dark:text-zinc-100">
         {formatYearMonth(year, month)}
       </h2>
 

@@ -6,6 +6,7 @@ import type {
   PlayerState,
   SavedPlaylist,
   SpotifySDKPlayer,
+  RepeatMode,
 } from '@/types/player'
 import { playTracks, setRepeatMode, setShuffleMode } from '@/services/spotify'
 import { useAuthStore } from './useAuthStore'
@@ -17,7 +18,7 @@ interface PlayerStore {
   savedPlaylists: SavedPlaylist[]
   currentIndex: number
   volume: number
-  isRepeat: boolean
+  repeatMode: RepeatMode
   isShuffle: boolean
   hasPlaybackHistory: boolean
   lastPlayedSpotifyId: string | null
@@ -69,7 +70,7 @@ export const usePlayerStore = create<PlayerStore>()(
       savedPlaylists: [],
       currentIndex: 0,
       volume: 70,
-      isRepeat: false,
+      repeatMode: 'off',
       isShuffle: false,
       hasPlaybackHistory: false,
       lastPlayedSpotifyId: null,
@@ -222,8 +223,9 @@ export const usePlayerStore = create<PlayerStore>()(
       setPlayerState: (state) => set((s) => { s.playerState = state }),
       setProgress: (ms, duration) =>
         set((s) => {
-          s.progressMs = ms
-          s.durationMs = duration
+          const safeDuration = Math.max(0, duration)
+          s.durationMs = safeDuration
+          s.progressMs = Math.max(0, Math.min(ms, safeDuration || ms))
         }),
 
       playAt: async (index, positionMs = 0) => {
@@ -296,10 +298,12 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       toggleRepeat: async () => {
-        const next = !get().isRepeat
-        set((s) => { s.isRepeat = next })
+        const current = get().repeatMode
+        const next: RepeatMode =
+          current === 'off' ? 'context' : current === 'context' ? 'track' : 'off'
+        set((s) => { s.repeatMode = next })
         const token = await useAuthStore.getState().getValidToken()
-        if (token) await setRepeatMode(next ? 'track' : 'off', token)
+        if (token) await setRepeatMode(next, token)
       },
 
       toggleShuffle: async () => {
@@ -321,7 +325,7 @@ export const usePlayerStore = create<PlayerStore>()(
         savedPlaylists: s.savedPlaylists,
         currentIndex: s.currentIndex,
         volume: s.volume,
-        isRepeat: s.isRepeat,
+        repeatMode: s.repeatMode,
         isShuffle: s.isShuffle,
         hasPlaybackHistory: s.hasPlaybackHistory,
         lastPlayedSpotifyId: s.lastPlayedSpotifyId,

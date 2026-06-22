@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useTodoStore } from '@/store/useTodoStore'
 import type { Todo, Priority } from '@/types/todo'
+import { isTodoOverdue } from '@/utils/todo'
 
 interface Props {
   todo: Todo
@@ -21,7 +23,14 @@ const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 export function TodoItem({ todo, onOpen, onDragStart, onDrop }: Props) {
-  const { toggleTodo, deleteTodo } = useTodoStore()
+  const { toggleTodo, deleteTodo, moveTodoToNextDay } = useTodoStore()
+  const [now, setNow] = useState(() => new Date())
+  const overdue = isTodoOverdue(todo, now)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   return (
     <li
@@ -76,6 +85,17 @@ export function TodoItem({ todo, onOpen, onDragStart, onDrop }: Props) {
         <time className="shrink-0 pt-0.5 text-[11px] font-semibold tabular-nums text-zinc-500 dark:text-zinc-400">
           {todo.dueTime}
         </time>
+      )}
+
+      {overdue && (
+        <button
+          onClick={() => moveTodoToNextDay(todo.id)}
+          className="shrink-0 rounded-lg bg-zinc-100 px-2 py-1 text-[10px] font-semibold text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-300"
+          aria-label="다음 날로 넘기기"
+          title="다음 날로 넘기기"
+        >
+          내일로
+        </button>
       )}
 
       <button
