@@ -31,7 +31,7 @@ beforeEach(() => {
     playlist: [],
     currentIndex: 0,
     volume: 70,
-    isRepeat: false,
+    repeatMode: 'off',
     isShuffle: false,
     hasPlaybackHistory: false,
     lastPlayedSpotifyId: null,
@@ -83,11 +83,13 @@ describe('usePlayerStore', () => {
     expect(usePlayerStore.getState().volume).toBe(50)
   })
 
-  it('반복 재생 상태를 토글한다', async () => {
+  it('반복 재생을 끄기 → 목록 → 한 곡 → 끄기 순서로 전환한다', async () => {
     await act(() => usePlayerStore.getState().toggleRepeat())
-    expect(usePlayerStore.getState().isRepeat).toBe(true)
+    expect(usePlayerStore.getState().repeatMode).toBe('context')
     await act(() => usePlayerStore.getState().toggleRepeat())
-    expect(usePlayerStore.getState().isRepeat).toBe(false)
+    expect(usePlayerStore.getState().repeatMode).toBe('track')
+    await act(() => usePlayerStore.getState().toggleRepeat())
+    expect(usePlayerStore.getState().repeatMode).toBe('off')
   })
 
   it('셔플 상태를 토글한다', async () => {
@@ -115,5 +117,10 @@ describe('usePlayerStore', () => {
     act(() => usePlayerStore.getState().setProgress(30000, 180000))
     expect(usePlayerStore.getState().progressMs).toBe(30000)
     expect(usePlayerStore.getState().durationMs).toBe(180000)
+  })
+
+  it('진행 시간이 재생 길이를 넘지 않도록 제한한다', () => {
+    act(() => usePlayerStore.getState().setProgress(190000, 180000))
+    expect(usePlayerStore.getState().progressMs).toBe(180000)
   })
 })

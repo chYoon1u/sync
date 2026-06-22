@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePlayerStore } from '@/store/usePlayerStore'
-import { transferPlayback } from '@/services/spotify'
+import { setRepeatMode, setShuffleMode, transferPlayback } from '@/services/spotify'
 import type { SpotifySDKPlayer } from '@/types/player'
 import type { SpotifyPlaybackState } from '@/types/spotify'
 
@@ -109,6 +109,8 @@ export function useSpotifyPlayer(enabled = true) {
               hasPlaybackHistory,
               lastPlayedSpotifyId,
               pendingPlayIndex,
+              repeatMode,
+              isShuffle,
               playAt,
             } = usePlayerStore.getState()
             const resumeIndex = pendingPlayIndex ?? (lastPlayedSpotifyId
@@ -121,6 +123,10 @@ export function useSpotifyPlayer(enabled = true) {
                 pendingPlayIndex === null && hasPlaybackHistory ? progressMs : 0
               ).catch(console.error)
             }
+            await Promise.all([
+              setRepeatMode(repeatMode, t),
+              setShuffleMode(isShuffle, t),
+            ]).catch(console.error)
           }
         })
 

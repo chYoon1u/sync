@@ -1,26 +1,22 @@
 import { useTodoStore } from '@/store/useTodoStore'
 import type { FilterStatus } from '@/types/todo'
-
-function localDateKey(date = new Date()): string {
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10)
-}
+import { localDateKey } from '@/utils/todo'
 
 const FILTERS: { value: FilterStatus; label: string }[] = [
-  { value: 'today', label: '오늘 투두리스트' },
-  { value: 'allDates', label: '전체 날짜' },
+  { value: 'today', label: 'Today' },
+  { value: 'allDates', label: 'All Dates' },
 ]
 
 export function TodoFilter() {
   const { todos, filter, setFilter } = useTodoStore()
   const today = localDateKey()
-  const counts: Record<FilterStatus, number> = {
-    today: todos.filter((todo) => todo.dueDate === today).length,
-    allDates: todos.length,
+  const grouped: Record<FilterStatus, typeof todos> = {
+    today: todos.filter((todo) => todo.dueDate === today),
+    allDates: todos,
   }
 
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900/60">
+    <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-50/80 p-1 dark:bg-zinc-900/40">
       {FILTERS.map((item) => (
         <button
           key={item.value}
@@ -32,7 +28,9 @@ export function TodoFilter() {
           }`}
         >
           <span className="block truncate">{item.label}</span>
-          <span className="mt-0.5 block text-[10px] font-normal opacity-60">{counts[item.value]}개</span>
+          <span className="mt-0.5 block text-[10px] font-normal opacity-60">
+            {grouped[item.value].filter((todo) => todo.completed).length}/{grouped[item.value].length}
+          </span>
         </button>
       ))}
     </div>

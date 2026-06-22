@@ -27,6 +27,7 @@ beforeEach(() => {
     playerState: 'stopped',
     progressMs: 0,
     durationMs: 0,
+    repeatMode: 'off',
   })
 })
 
@@ -52,5 +53,34 @@ describe('PlayerBar', () => {
     render(<PlayerBar />)
 
     expect(screen.getByTestId('player-bar')).toBeInTheDocument()
+  })
+
+  it('재생 버튼과 진행 표시가 포인트 컬러를 사용', () => {
+    useAuthStore.setState({ accessToken: 'mock-token' })
+    usePlayerStore.setState({
+      playlist: [track],
+      progressMs: 90000,
+      durationMs: 180000,
+    })
+
+    render(<PlayerBar />)
+
+    expect(screen.getByRole('button', { name: '재생' })).toHaveClass('accent-bg')
+    const progressInput = screen.getByRole('slider', { name: '재생 위치' })
+    expect(progressInput.previousElementSibling).toHaveClass('accent-bg')
+  })
+
+  it('진행 시간이 길이를 넘어도 진행 표시를 100%로 제한', () => {
+    useAuthStore.setState({ accessToken: 'mock-token' })
+    usePlayerStore.setState({
+      playlist: [track],
+      progressMs: 200000,
+      durationMs: 180000,
+    })
+
+    render(<PlayerBar />)
+
+    const progressInput = screen.getByRole('slider', { name: '재생 위치' })
+    expect(progressInput.previousElementSibling).toHaveStyle({ width: '100%' })
   })
 })

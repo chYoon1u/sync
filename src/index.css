@@ -205,10 +205,15 @@ body[data-calendar-collapsed='true'] #root {
   min-width: 376px;
 }
 
-body[data-calendar-collapsed='true'] .playerbar-inner,
 body[data-todo-compact='true'] .playerbar-inner {
   grid-template-columns: minmax(0, 1fr);
   height: 72px;
+  padding-inline: 12px;
+}
+
+body[data-calendar-collapsed='true'] .playerbar-inner {
+  grid-template-columns: minmax(0, 1fr);
+  height: 96px;
   padding-inline: 12px;
 }
 
@@ -250,8 +255,21 @@ h2 {
   letter-spacing: -0.24px;
   margin: 0 0 8px;
 }
+
+h2.compact-section-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
 p {
   margin: 0;
+}
+
+input::placeholder,
+textarea::placeholder {
+  font-size: 80%;
 }
 
 code,

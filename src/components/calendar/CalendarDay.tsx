@@ -35,7 +35,7 @@ export function CalendarDay({ dateStr, day, isCurrentMonth, isSelected, todos, o
       } ${isSelected ? 'accent-ring' : ''}`}
     >
       <span
-        className={`mx-auto mb-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+        className={`mx-auto mb-1 flex size-5 aspect-square shrink-0 items-center justify-center rounded-full text-[11px] font-semibold leading-none ${
           today ? 'accent-bg text-white' : ''
         }`}
       >
